@@ -1,0 +1,9 @@
+[user]
+	name = Steve Jones
+	email = steve@secretvolcanobase.org
+
+[format]
+	pretty = format:%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset
+
+[alias]
+	lt = log --graph --all --abbrev-commit --date=relative -10
