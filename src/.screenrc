@@ -1,0 +1,11 @@
+escape ^Oo
+monitor on
+hardstatus alwayslastline "%-Lw%{= BW}%50>%n%f %t%{-}%+Lw%<"
+caption always "%{= ck}%?%F%{=b Ck}%?%3n %t %f%? [%h]%?"
+# terminfo and termcap for nice 256 color terminal
+# allow bold colors - necessary for some reason
+attrcolor b ".I" 
+# tell screen how to set colors. AB = background, AF=foreground 
+termcapinfo xterm 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm' 
+# erase background with current bg color 
+defbce "on" 
