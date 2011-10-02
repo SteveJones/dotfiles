@@ -1,8 +1,10 @@
 (require 'ido)
 
-(tool-bar-mode -1)
+(if (boundp 'tool-bar-mode)
+    (tool-bar-mode -1))
 (menu-bar-mode -1)
-(scroll-bar-mode -1)
+(if (boundp 'scroll-bar-mode)
+    (scroll-bar-mode -1))
 (column-number-mode 1)
 (show-paren-mode 1)
 (setq inhibit-startup-screen t)
