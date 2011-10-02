@@ -23,14 +23,31 @@
 (add-hook 'tcl-mode-hook 'flyspell-prog-mode)
 (add-hook 'sql-mode-hook 'flyspell-prog-mode)
 
+(defun project-root ()
+  (let* ((path (buffer-file-name))
+	 (parts (split-string path "/"))
+	 (root '()))
+    (while (and parts (not (string= (car parts) "code")))
+      (add-to-list 'root (car parts) t)
+      (setq parts (cdr parts)))
+    ;; Adds "code"
+    (if parts
+	(progn
+	  (add-to-list 'root (car parts) t)
+	  (setq parts (cdr parts))))
+    ;; Adds directory above code
+    (if parts
+	(add-to-list 'root (car parts) t))
+    (mapconcat 'identity root "/")))
+
 (defvar ack-type "all"
   "The type of file to search with the ack function. This should
 be made buffer local and set to the file type in load hooks.")
 
 (make-variable-buffer-local 'ack-type)
 
-(defun run-ack (type query)
-  (compilation-start (concat "ack-grep -H --nogroup --nocolor --" type " " query) 'grep-mode))
+(defun run-ack (type query directory)
+  (compilation-start (concat "ack-grep -H --nogroup --nocolor --" type " '" query "' '" directory "'") 'grep-mode))
 
 (defvar ack-history nil)
 
@@ -48,7 +65,7 @@ be made buffer local and set to the file type in load hooks.")
     (if (string= query "")
 	()
       (add-to-list 'ack-history query)
-      (run-ack ack-type query))))
+      (run-ack ack-type query (project-root)))))
 
 (defun ack-all ()
   (interactive)
@@ -56,8 +73,8 @@ be made buffer local and set to the file type in load hooks.")
     (if (string= query "")
 	()
       (add-to-list 'ack-history query)
-      (run-ack "all" query))))
- 
+      (run-ack "all" query (project-root)))))
+
 (defun my-emacs-lisp-mode-hook ()
   (flyspell-prog-mode)
   (hs-minor-mode)
