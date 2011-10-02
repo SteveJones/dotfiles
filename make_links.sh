@@ -12,3 +12,11 @@ for file in src/.*; do
 	ln -s "$PWD/$file" "$target"
     fi
 done
+
+if [ -h "$HOME/bin" ]; then
+    rm "$HOME/bin"
+elif [ -d "$HOME/bin" ]; then
+    mv "$HOME/bin" "$HOME/bin.bak"
+fi
+
+ln -s "$PWD/bin" "$HOME/bin"

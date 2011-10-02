@@ -205,3 +205,8 @@ fi
 
 export PYTHONPATH=~/code/miyamoto
 export PYTHONSTARTUP=~/.pythonrc.py
+
+export PATH="$HOME/bin:$PATH"
+
+export LESSOPEN="| $HOME/bin/lesspipe.sh %s"
+export LESS="-R"
