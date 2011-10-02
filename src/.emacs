@@ -23,6 +23,23 @@
 (add-hook 'tcl-mode-hook 'flyspell-prog-mode)
 (add-hook 'sql-mode-hook 'flyspell-prog-mode)
 
+(defvar ack-type "all"
+  "The type of file to search with the ack function. This should
+be made buffer local and set to the file type in load hooks.")
+
+(defun run-ack (type query)
+  (compilation-start (concat "ack-grep -H --nogroup --nocolor --" type " " query) 'grep-mode))
+
+(defvar ack-history nil)
+
+(defun ack ()
+  (interactive)
+  (let ((query (read-string "Ack: " nil ack-history)))
+    (if (string= query "")
+	()
+      (add-to-list 'ack-history query)
+      (run-ack ack-type query))))
+
 (defun my-emacs-lisp-mode-hook ()
   (flyspell-prog-mode)
   (hs-minor-mode)
