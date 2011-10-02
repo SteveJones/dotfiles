@@ -204,3 +204,4 @@ if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
 fi
 
 export PYTHONPATH=~/code/miyamoto
+export PYTHONSTARTUP=~/.pythonrc.py
