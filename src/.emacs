@@ -34,7 +34,7 @@ be made buffer local and set to the file type in load hooks.")
 
 (defun ack ()
   (interactive)
-  (let ((query (read-string "Ack: " nil ack-history)))
+  (let ((query (read-string "Ack: " nil 'ack-history)))
     (if (string= query "")
 	()
       (add-to-list 'ack-history query)
