@@ -27,6 +27,8 @@
   "The type of file to search with the ack function. This should
 be made buffer local and set to the file type in load hooks.")
 
+(make-variable-buffer-local 'ack-type)
+
 (defun run-ack (type query)
   (compilation-start (concat "ack-grep -H --nogroup --nocolor --" type " " query) 'grep-mode))
 
@@ -53,7 +55,8 @@ be made buffer local and set to the file type in load hooks.")
   (hs-minor-mode)
   (make-local-variable 'hippie-expand-try-functions-list)
   (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol)
-  (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol-partially))
+  (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol-partially)
+  (setq ack-type "elisp"))
 
 (add-hook 'emacs-lisp-mode-hook 'my-emacs-lisp-mode-hook)
 
@@ -92,7 +95,8 @@ be made buffer local and set to the file type in load hooks.")
   (flymake-mode)
   (hs-minor-mode)
   (flyspell-prog-mode)
-  (local-set-key (kbd "C-c f") 'python-describe-symbol))
+  (local-set-key (kbd "C-c f") 'python-describe-symbol)
+  (setq ack-type "python"))
 
 (add-hook 'python-mode-hook 'my-python-mode-hook)
 
@@ -104,7 +108,8 @@ be made buffer local and set to the file type in load hooks.")
   (flymake-mode)
   (local-set-key (kbd "C-c f") 'cperl-describe-symbol)
   (hs-minor-mode)
-  (flyspell-prog-mode))
+  (flyspell-prog-mode)
+  (setq ack-type "perl"))
 
 (add-hook 'cperl-mode-hook 'my-perl-mode-hook)
 (add-to-list 'auto-mode-alist '("\\.\\([pP][Llm]\\|al\\)\\'" . cperl-mode))
