@@ -34,9 +34,17 @@ be made buffer local and set to the file type in load hooks.")
 
 (defvar ack-history nil)
 
+(defun ack-get-query (prompt)
+  (let ((default (thing-at-point 'symbol)))
+    (read-string
+     (concat prompt " (default " default "): ")
+     nil
+     'ack-history
+     default)))
+
 (defun ack ()
   (interactive)
-  (let ((query (read-string "Ack: " nil 'ack-history)))
+  (let ((query (ack-get-query "Ack")))
     (if (string= query "")
 	()
       (add-to-list 'ack-history query)
@@ -44,12 +52,12 @@ be made buffer local and set to the file type in load hooks.")
 
 (defun ack-all ()
   (interactive)
-  (let ((query (read-string "Ack all: " nil 'ack-history)))
+  (let ((query (ack-get-query "Ack all")))
     (if (string= query "")
 	()
       (add-to-list 'ack-history query)
-      (run-ack "all" query))))  
-
+      (run-ack "all" query))))
+ 
 (defun my-emacs-lisp-mode-hook ()
   (flyspell-prog-mode)
   (hs-minor-mode)
