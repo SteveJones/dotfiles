@@ -1,6 +1,9 @@
 (require 'ido)
 (require 'imenu)
 (require 'cl)
+(require 'tramp)
+
+(setq tramp-default-method "scpc")
 
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
@@ -10,7 +13,7 @@
   (let ((name-and-pos '())
         (symbol-names '()))
     (flet ((addsymbols (symbol-list)
-                       (when (listp symbol-list)
+		       (when (listp symbol-list)
                          (dolist (symbol symbol-list)
                            (let ((name nil) (position nil))
                              (cond
@@ -25,18 +28,19 @@
                              (unless (or (null position) (null name))
                                (add-to-list 'symbol-names name)
                                (add-to-list 'name-and-pos (cons name position))))))))
-	  (addsymbols imenu--index-alist)
-	  (let* ((symbol-at-point (symbol-name (symbol-at-point)))
-		 (selected-symbol (ido-completing-read
-				   "Symbol? "
-				   (if (member symbol-at-point symbol-names)
-				       (cons symbol-at-point
-					     (remove-if (lambda (x) (string-equal x symbol-at-point))
-							symbol-names))
-				     symbol-names)))
-		 (position (cdr (assoc selected-symbol name-and-pos))))
-	    (if (markerp position)
-		(goto-char position) (goto-char (overlay-start position)))))))
+      (addsymbols imenu--index-alist)
+      (let* ((symbol-at-point (symbol-name (symbol-at-point)))
+	     (selected-symbol (ido-completing-read
+			       "Symbol? "
+			       (if (member symbol-at-point symbol-names)
+				   (cons symbol-at-point
+					 (remove-if (lambda (x) (string-equal x symbol-at-point))
+						    symbol-names))
+				 symbol-names)))
+	     (pos (cdr (assoc selected-symbol name-and-pos))))
+	(if (overlayp pos)
+	    (goto-char (overlay-start pos))
+	  (goto-char pos))))))
 
 (global-set-key (kbd "C-S-s") 'ido-goto-symbol)
 
