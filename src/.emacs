@@ -2,6 +2,15 @@
 (require 'imenu)
 (require 'cl)
 (require 'tramp)
+(if (file-exists-p "~/code/emacsweblogs/lisp")
+    (progn
+      (add-to-list 'load-path "~/code/emacsweblogs/lisp")
+      (require 'xml-rpc)
+      (if (file-exists-p "~/code/jira-mode")
+	  (progn
+	    (add-to-list 'load-path "~/code/jira-mode")
+	    (require 'jira)))))
+
 
 (setq tramp-default-method "scpc")
 
@@ -263,6 +272,8 @@ be made buffer local and set to the file type in load hooks.")
  '(compilation-window-height 10)
  '(ido-everywhere t)
  '(ido-mode (quote both) nil (ido))
+ '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
+ '(org-todo-keywords (quote ((sequence "TODO" "BUG_CREATED" "IN_PROGRESS" "DONE"))))
  '(vc-delete-logbuf-window nil))
 (custom-set-faces
   ;; custom-set-faces was added by Custom.
