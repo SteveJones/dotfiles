@@ -15,6 +15,8 @@
 
 (setq tramp-default-method "scpc")
 
+(global-set-key (kbd "C-c a") 'org-agenda)
+
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
   "Will update the imenu index and then use ido to select a symbol to navigate to"
@@ -288,9 +290,13 @@ be made buffer local and set to the file type in load hooks.")
  '(flymake-warnline ((((class color) (background light)) (:underline "steelblue"))))
  '(flyspell-duplicate ((t (:underline "gold4"))))
  '(flyspell-incorrect ((t (:underline "red"))))
- '(font-lock-builtin-face ((((class color) (min-colors 88) (background light)) (:foreground "steelblue4"))))
+ '(font-lock-builtin-face ((((class color) (min-colors 88) (background light)) (:foreground "blue1"))))
  '(font-lock-comment-delimiter-face ((default (:foreground "Firebrick4")) (((class color) (min-colors 16)) nil)))
- '(font-lock-constant-face ((((class color) (min-colors 88) (background light)) (:foreground "orangered"))))
- '(font-lock-doc-face ((t (:foreground "brown2"))))
- '(font-lock-string-face ((((class color) (min-colors 88) (background light)) (:foreground "Brown"))))
+ '(font-lock-comment-face ((((class color) (min-colors 88) (background light)) (:foreground "brown"))))
+ '(font-lock-constant-face ((((class color) (min-colors 88) (background light)) (:foreground "salmon4"))))
+ '(font-lock-doc-face ((t (:foreground "darkslategrey"))))
+ '(font-lock-function-name-face ((((class color) (min-colors 88) (background light)) (:foreground "Blue3"))))
+ '(font-lock-keyword-face ((((class color) (min-colors 88) (background light)) (:foreground "Purple3"))))
+ '(font-lock-string-face ((((class color) (min-colors 88) (background light)) (:foreground "darkgreen"))))
+ '(font-lock-variable-name-face ((((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
  '(italic ((((supports :underline t)) (:slant italic)))))
