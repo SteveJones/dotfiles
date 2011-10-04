@@ -75,11 +75,18 @@ function git_root {
     return $?
 }
 
+function bzr_root {
+    VC_ROOT="$(up_till_file .bzr)"
+    return $?
+}
+
 function vc_root {
     if hg_root; then
 	VC_TYPE="hg"
     elif git_root; then
 	VC_TYPE="git"
+    elif bzr_root; then
+	VC_TYPE="bzr"
     else
 	VC_TYPE="none"
     fi
@@ -99,6 +106,15 @@ function git_changed {
     CHANGES="$(git status --porcelain)"
     if [ $? -eq 0 ]; then
 	local CH_COUNT="$(echo "$CHANGES" | grep -v '^??' | wc -l)"
+	echo "$CH_COUNT"
+    fi
+}
+
+function bzr_changed {
+    local CHANGES
+    CHANGES="$(bzr status -SV)"
+    if [ $? -eq 0 ]; then
+	local CH_COUNT="$(echo "$CHANGES" | grep . | wc -l)"
 	echo "$CH_COUNT"
     fi
 }
@@ -141,6 +157,8 @@ function ps1_update {
 	PS1_STATUS="$STATUS_COLOUR($(hg_changed))"
     elif [ "$VC_TYPE" = "git" ]; then
 	PS1_STATUS="$STATUS_COLOUR($(git_changed))"
+    elif [ "$VC_TYPE" = "bzr" ]; then
+	PS1_STATUS="$STATUS_COLOUR($(bzr_changed))"
     fi
 
     local HOST_COLOUR="\[\033[00;32m\]"
