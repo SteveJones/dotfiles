@@ -84,19 +84,22 @@
 (defun project-root ()
   (let* ((path (buffer-file-name))
 	 (parts (split-string path "/"))
-	 (root '()))
+	 (root ""))
     (while (and parts (not (string= (car parts) "code")))
-      (add-to-list 'root (car parts) t)
+      (unless (string= "" (car parts))
+	(setq root (concat root "/" (car parts))))
       (setq parts (cdr parts)))
     ;; Adds "code"
-    (if parts
+    (if (string= (car parts) "code")
 	(progn
-	  (add-to-list 'root (car parts) t)
-	  (setq parts (cdr parts))))
-    ;; Adds directory above code
-    (if parts
-	(add-to-list 'root (car parts) t))
-    (mapconcat 'identity root "/")))
+	  (setq root (concat root "/" (car parts)))
+	  (setq parts (cdr parts))
+	  ;; Adds directory above code
+	  (if parts
+	      (setq root (concat root "/" (car parts))))))
+    (if (not (file-directory-p root))
+	(file-name-directory root)
+      root)))
 
 (defvar ack-type "all"
   "The type of file to search with the ack function. This should
