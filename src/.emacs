@@ -10,7 +10,8 @@
 	  (progn
 	    (add-to-list 'load-path "~/code/jira-mode")
 	    (require 'jira)))))
-
+(require 'epa-file)
+(epa-file-enable)
 
 (setq tramp-default-method "scpc")
 
@@ -273,14 +274,16 @@ be made buffer local and set to the file type in load hooks.")
  '(ido-everywhere t)
  '(ido-mode (quote both) nil (ido))
  '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
+ '(org-agenda-files (quote ("~/notes.org")))
  '(org-todo-keywords (quote ((sequence "TODO" "BUG_CREATED" "IN_PROGRESS" "DONE"))))
+ '(read-mail-command (quote gnus))
  '(vc-delete-logbuf-window nil))
 (custom-set-faces
   ;; custom-set-faces was added by Custom.
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "white" :foreground "black" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 100 :width normal :foundry "unknown" :family "Inconsolata"))))
+ '(default ((t (:inherit nil :stipple nil :background "white" :foreground "black" :inverse-video nil ...))))
  '(flymake-errline ((((class color) (background light)) (:underline "red"))))
  '(flymake-warnline ((((class color) (background light)) (:underline "steelblue"))))
  '(flyspell-duplicate ((t (:underline "gold4"))))
