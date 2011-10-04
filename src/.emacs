@@ -12,6 +12,8 @@
 	    (require 'jira)))))
 (require 'epa-file)
 (epa-file-enable)
+(if (file-exists-p "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el")
+    (load-file "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el"))
 
 (setq tramp-default-method "scpc")
 
