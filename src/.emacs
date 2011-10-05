@@ -19,6 +19,33 @@
 
 (global-set-key (kbd "C-c a") 'org-agenda)
 
+(defvar tester-file-patterns
+  (list
+   (list "\\.py$"
+	 '("python" "-m" "doctest")
+	 '(("^File" "^\\*\\{70\\}$")
+	   ("^File \"\\([^\"]+\\)\", line \\([[:digit:]]+\\)" '((1 . file) (2 . lineno)))
+	   ("^\\(Exception raised:\n\\(.\\|\n\\)*\\)\n\\*\\{70\\}$" '((1 . message)))))))
+
+(defun list-find (l pred)
+  (if l
+      (if (funcall pred (car l))
+	  (car l)
+	(list-find (cdr l) pred))
+    nil))
+  
+(defun tester-find-appropriate (filename)
+  (cdr (list-find tester-file-patterns
+		  (lambda (test)
+		    (string-match (car test) filename)))))
+
+;; TODO
+(defun tester-run-tests (buffer)
+  (let* ((test (tester-find-appropriate (buffer-file-name)))
+	 (output (generate-new-buffer "*Tester*"))
+	 (process (start-process "tester" buffer (car test))))))
+    
+
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
   "Will update the imenu index and then use ido to select a symbol to navigate to"
