@@ -19,6 +19,20 @@
 
 (global-set-key (kbd "C-c a") 'org-agenda)
 
+(defun de-camel ()
+  """CamelCaseIsEvilAndMustBeDestroyed"""
+  (interactive)
+  (while (looking-at "\\w")
+    (let ((case-fold-search nil)
+	  (c (char-after)))
+      (if (char-equal (upcase c) c)
+	  (progn
+	    (insert "_" (downcase (char-after)))
+	    (delete-char 1))
+	(forward-char 1)))))
+
+(global-set-key (kbd "C-x C-h") 'de-camel)
+
 (defvar tester-file-patterns
   (list
    (list "\\.py$"
