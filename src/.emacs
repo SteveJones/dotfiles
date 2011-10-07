@@ -318,7 +318,8 @@ be made buffer local and set to the file type in load hooks.")
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(compilation-skip-threshold 1)
- '(compilation-window-height 10)
+ '(compilation-window-height 20)
+ '(hs-hide-comments-when-hiding-all nil)
  '(ido-everywhere t)
  '(ido-mode (quote both) nil (ido))
  '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
@@ -331,7 +332,7 @@ be made buffer local and set to the file type in load hooks.")
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "white" :foreground "black" :inverse-video nil ...))))
+ '(default ((t (:inherit nil :stipple nil :background "white" :foreground "black" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 100 :width normal :foundry "unknown" :family "Inconsolata"))))
  '(flymake-errline ((((class color) (background light)) (:underline "red"))))
  '(flymake-warnline ((((class color) (background light)) (:underline "steelblue"))))
  '(flyspell-duplicate ((t (:underline "gold4"))))
@@ -346,3 +347,5 @@ be made buffer local and set to the file type in load hooks.")
  '(font-lock-string-face ((((class color) (min-colors 88) (background light)) (:foreground "darkgreen"))))
  '(font-lock-variable-name-face ((((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
  '(italic ((((supports :underline t)) (:slant italic)))))
+
+(put 'narrow-to-region 'disabled nil)
