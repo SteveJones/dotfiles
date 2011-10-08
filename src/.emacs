@@ -200,8 +200,8 @@ be made buffer local and set to the file type in load hooks.")
   (flyspell-prog-mode)
   (hs-minor-mode)
   (make-local-variable 'hippie-expand-try-functions-list)
-  (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol)
-  (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol-partially)
+  (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol t)
+  (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol-partially t)
   (setq ack-type "elisp"))
 
 (add-hook 'emacs-lisp-mode-hook 'my-emacs-lisp-mode-hook)
@@ -293,9 +293,23 @@ be made buffer local and set to the file type in load hooks.")
 (defun my-c-mode-hook ()
   (flymake-mode)
   (hs-minor-mode)
-  (local-set-key (kbd "C-c f") 'man-follow))
+  (local-set-key (kbd "C-c f") 'manual-entry)
+  (setq ack-type "cc"))
 
 (add-hook 'c-mode-hook 'my-c-mode-hook)
+
+(defun my-c++-mode-hook ()
+  (flymake-mode)
+  (hs-minor-mode)
+  (local-set-key (kbd "C-c f") 'manual-entry)
+  (setq ack-type "cpp"))
+
+(add-hook 'c++-mode-hook 'my-c++-mode-hook)
+
+(add-to-list 'compilation-error-regexp-alist-alist
+	     '(boost-test-failure "^\\([^(]+\\)(\\([[:digit:]]+\\)):\\s-+fatal\\s-+error"))
+
+(add-to-list 'compilation-error-regexp-alist 'boost-test-failure)
 
 ;(setq compilation-error-regexp-alist-alist (assq-delete-all 'miyamoto-error compilation-error-regexp-alist-alist))
 ;(setq compilation-error-regexp-alist-alist (assq-delete-all 'miyamoto-info compilation-error-regexp-alist-alist))
