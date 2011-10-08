@@ -33,10 +33,18 @@
 
 (global-set-key (kbd "C-x C-h") 'de-camel)
 
+(setq tester-file-patterns
+  (list
+   (list "\\.py$"
+	 '("unit2" "discover" "-p" "*_tests.py")
+	 '(("^File" "^\\*\\{70\\}$")
+	   ("^File \"\\([^\"]+\\)\", line \\([[:digit:]]+\\)" '((1 . file) (2 . lineno)))
+	   ("^\\(Exception raised:\n\\(.\\|\n\\)*\\)\n\\*\\{70\\}$" '((1 . message)))))))
+
 (defvar tester-file-patterns
   (list
    (list "\\.py$"
-	 '("python" "-m" "doctest")
+	 '("unit2" "discover" "-p" "*_tests.py")
 	 '(("^File" "^\\*\\{70\\}$")
 	   ("^File \"\\([^\"]+\\)\", line \\([[:digit:]]+\\)" '((1 . file) (2 . lineno)))
 	   ("^\\(Exception raised:\n\\(.\\|\n\\)*\\)\n\\*\\{70\\}$" '((1 . message)))))))
@@ -53,12 +61,21 @@
 		  (lambda (test)
 		    (string-match (car test) filename)))))
 
+(make-face 'tester-highlight-face)
+(set-face-background 'tester-highlight-face "thistle")
+
+(setq debug-on-error t)
 ;; TODO
-(defun tester-run-tests (buffer)
-  (let* ((test (tester-find-appropriate (buffer-file-name)))
+(defun tester-run-tests ()
+  (interactive)
+  (let* ((buffer (current-buffer))
+	 (test (tester-find-appropriate (buffer-file-name buffer)))
 	 (output (generate-new-buffer "*Tester*"))
-	 (process (start-process "tester" buffer (car test))))))
+	 (run-process (append '(start-process "tester" output)
+			      (car test))))
+    (eval run-process)
     
+    ))
 
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
