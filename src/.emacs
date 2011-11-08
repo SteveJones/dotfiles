@@ -15,9 +15,16 @@
 (if (file-exists-p "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el")
     (load-file "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el"))
 
+(if (file-exists-p "~/code/confluence-el-read-only")
+    (progn
+      (add-to-list 'load-path "~/code/confluence-el-read-only")
+      (require 'confluence)))
+
 (setq tramp-default-method "scpc")
 
 (global-set-key (kbd "C-c a") 'org-agenda)
+(setq org-default-notes-file (concat org-directory "notes.el"))
+(global-set-key (kbd "C-c c") 'org-capture)
 
 (defun de-camel ()
   """CamelCaseIsEvilAndMustBeDestroyed"""
@@ -350,9 +357,13 @@ be made buffer local and set to the file type in load hooks.")
   ;; If there is more than one, they won't work right.
  '(compilation-skip-threshold 1)
  '(compilation-window-height 20)
+ '(confluence-default-space-alist (quote (("https://hq.hanzoarchives.com/confluence/rpc/xmlrpc" . "dashboard"))))
+ '(confluence-url "https://hq.hanzoarchives.com/confluence/rpc/xmlrpc")
  '(hs-hide-comments-when-hiding-all nil)
  '(ido-everywhere t)
  '(ido-mode (quote both) nil (ido))
+ '(ispell-dictionary "british")
+ '(ispell-local-dictionary "british")
  '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
  '(org-agenda-files (quote ("~/notes.org")))
  '(org-todo-keywords (quote ((sequence "TODO" "BUG_CREATED" "IN_PROGRESS" "DONE"))))
