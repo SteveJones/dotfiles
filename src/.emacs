@@ -19,12 +19,14 @@
     (progn
       (add-to-list 'load-path "~/code/confluence-el-read-only")
       (require 'confluence)))
+(require 'org)
+(require 'remember)
 
 (setq tramp-default-method "scpc")
 
 (global-set-key (kbd "C-c a") 'org-agenda)
 (setq org-default-notes-file (concat org-directory "notes.el"))
-(global-set-key (kbd "C-c c") 'org-capture)
+(global-set-key (kbd "C-c c") 'org-remember)
 
 (defun de-camel ()
   """CamelCaseIsEvilAndMustBeDestroyed"""
