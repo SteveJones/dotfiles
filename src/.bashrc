@@ -228,3 +228,5 @@ export PATH="$HOME/bin:$PATH"
 
 export LESSOPEN="| $HOME/bin/lesspipe.sh %s"
 export LESS="-R"
+
+bind '"\e/":dabbrev-expand'
