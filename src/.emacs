@@ -20,13 +20,21 @@
       (add-to-list 'load-path "~/code/confluence-el-read-only")
       (require 'confluence)))
 (require 'org)
-(require 'remember)
 
 (setq tramp-default-method "scpc")
 
 (global-set-key (kbd "C-c a") 'org-agenda)
-(setq org-default-notes-file (concat org-directory "notes.el"))
-(global-set-key (kbd "C-c c") 'org-remember)
+(global-set-key (kbd "C-c c") 'org-capture)
+(setq org-clock-persist 'history)
+(org-clock-persistence-insinuate)
+
+(setq org-mobile-inbox-for-pull "~/org/flagged")
+(setq org-mobile-directory "/mnt/hgfs/stephenjones/Dropbox/org")
+
+(defun generate-file-template ()
+  (let ((file-name (buffer-file-name))
+	(line-number (line-number-at-pos)))
+    (concat "* " file-name ":" (int-to-string line-number) " %T")))
 
 (defun de-camel ()
   """CamelCaseIsEvilAndMustBeDestroyed"""
@@ -353,10 +361,10 @@ be made buffer local and set to the file type in load hooks.")
 (add-to-list 'compilation-error-regexp-alist 'psql-error)
 
 (custom-set-variables
-  ;; custom-set-variables was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(compilation-skip-threshold 1)
  '(compilation-window-height 20)
  '(confluence-default-space-alist (quote (("https://hq.hanzoarchives.com/confluence/rpc/xmlrpc" . "dashboard"))))
@@ -367,15 +375,25 @@ be made buffer local and set to the file type in load hooks.")
  '(ispell-dictionary "british")
  '(ispell-local-dictionary "british")
  '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
- '(org-agenda-files (quote ("~/notes.org")))
- '(org-todo-keywords (quote ((sequence "TODO" "BUG_CREATED" "IN_PROGRESS" "DONE"))))
+ '(org-agenda-diary-file "~/org/diary.org")
+ '(org-agenda-files (quote ("~/org/notes.org" "~/org/personal.org" "~/org/hanzo.org" "~/org/diary.org")))
+ '(org-babel-load-languages (quote ((emacs-lisp . t) (python . t) (awk . t) (sh . t) (R . t) (sql . t))))
+ '(org-capture-templates (quote (("s" "Shopping list item" entry (file+headline "~/org/notes.org" "Shopping list") "* NEED") ("f" "Note about current file" entry (file+headline "~/org/notes.org" "Code notes") (function generate-file-template)) ("n" "Note" entry (file+headline "~/org/notes.org" "Notes") "* %T") ("w" "Work Task" entry (file+headline "~/org/notes.org" "Tasks") "* TODO %U
+:PROPERTIES:
+:report to:
+:END:") ("t" "Task" entry (file+headline "~/org/notes.org" "Tasks") "* TODO %U"))))
+ '(org-default-notes-file "~/org/notes.el")
+ '(org-modules (quote (org-bbdb org-bibtex org-docview org-gnus org-info org-jsinfo org-habit org-irc org-mew org-mhe org-rmail org-vm org-wl org-w3m org-git-link)))
+ '(org-src-fontify-natively t)
+ '(org-todo-keywords (quote ((sequence "TODO" "DONE"))))
  '(read-mail-command (quote gnus))
+ '(remember-data-file "~/remember.org")
  '(vc-delete-logbuf-window nil))
 (custom-set-faces
-  ;; custom-set-faces was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(default ((t (:inherit nil :stipple nil :background "white" :foreground "black" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 100 :width normal :foundry "unknown" :family "Inconsolata"))))
  '(flymake-errline ((((class color) (background light)) (:underline "red"))))
  '(flymake-warnline ((((class color) (background light)) (:underline "steelblue"))))
@@ -390,6 +408,19 @@ be made buffer local and set to the file type in load hooks.")
  '(font-lock-keyword-face ((((class color) (min-colors 88) (background light)) (:foreground "Purple3"))))
  '(font-lock-string-face ((((class color) (min-colors 88) (background light)) (:foreground "darkgreen"))))
  '(font-lock-variable-name-face ((((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
- '(italic ((((supports :underline t)) (:slant italic)))))
+ '(italic ((((supports :underline t)) (:slant italic))))
+ '(org-agenda-done ((t (:foreground "dark green"))))
+ '(org-agenda-structure ((t (:foreground "dark blue"))))
+ '(org-block-background ((t (:background "grey90"))))
+ '(org-done ((t (:background "ForestGreen" :foreground "white" :box (:line-width 2 :color "darkgreen" :style released-button) :weight bold))))
+ '(org-table ((t (:foreground "grey20" :box (:line-width 1 :color "grey75")))))
+ '(org-todo ((t (:background "red1" :foreground "white" :box (:line-width 2 :color "red4" :style released-button) :weight bold))))
+ '(outline-1 ((t (:foreground "medium blue" :weight bold :height 1.3))))
+ '(outline-2 ((t (:foreground "medium blue" :weight bold :height 1.1))))
+ '(outline-3 ((t (:foreground "medium blue" :weight bold))))
+ '(outline-4 ((t (:background "gray90" :foreground "forest green" :weight bold))))
+ '(outline-5 ((t (:background "gray93" :foreground "forest green" :weight bold))))
+ '(outline-6 ((t (:background "gray96" :foreground "forest green" :weight bold))))
+ '(outline-7 ((t (:background "gray99" :foreground "forest green" :weight bold)))))
 
 (put 'narrow-to-region 'disabled nil)
