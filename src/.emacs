@@ -19,6 +19,8 @@
     (progn
       (add-to-list 'load-path "~/code/confluence-el-read-only")
       (require 'confluence)))
+
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (require 'org)
 
 (setq tramp-default-method "scpc")
@@ -30,6 +32,12 @@
 
 (setq org-mobile-inbox-for-pull "~/org/flagged")
 (setq org-mobile-directory "/mnt/hgfs/stephenjones/Dropbox/org")
+
+(setq browse-url-browser-function 'w3m-browse-url)
+(autoload 'w3m-browse-url "w3m" "Ask a WWW browser to show a URL." t)
+;; optional keyboard short-cut
+(global-set-key "\C-xm" 'browse-url-at-point)
+(setq w3m-use-cookies 't)
 
 (defun generate-file-template ()
   (let ((file-name (buffer-file-name))
@@ -360,6 +368,14 @@ be made buffer local and set to the file type in load hooks.")
 (add-to-list 'compilation-error-regexp-alist 'psql-notice)
 (add-to-list 'compilation-error-regexp-alist 'psql-error)
 
+(setq gnus-select-method 
+      '(nnimap "mail.secretvolcanobase.org"
+	       (nnimap-address "mail.secretvolcanobase.org")
+	       (nnimap-server-port 993)
+	       (nnimap-stream ssl)))
+
+(require 'smtpmail)
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -369,6 +385,11 @@ be made buffer local and set to the file type in load hooks.")
  '(compilation-window-height 20)
  '(confluence-default-space-alist (quote (("https://hq.hanzoarchives.com/confluence/rpc/xmlrpc" . "dashboard"))))
  '(confluence-url "https://hq.hanzoarchives.com/confluence/rpc/xmlrpc")
+ '(fill-column 78)
+ '(gnus-ignored-newsgroups "")
+ '(gnus-select-method (quote (nnimap "mail.secretvolcanobase.org")))
+ '(gnus-summary-line-format "%U%R%z%>%(%[%-23,23f%]%) %s
+")
  '(hs-hide-comments-when-hiding-all nil)
  '(ido-everywhere t)
  '(ido-mode (quote both) nil (ido))
@@ -388,6 +409,14 @@ be made buffer local and set to the file type in load hooks.")
  '(org-todo-keywords (quote ((sequence "TODO" "DONE"))))
  '(read-mail-command (quote gnus))
  '(remember-data-file "~/remember.org")
+ '(send-mail-function (quote smtpmail-send-it))
+ '(smtpmail-debug-info t)
+ '(smtpmail-local-domain nil)
+ '(smtpmail-smtp-server "mail.secretvolcanobase.org")
+ '(smtpmail-smtp-service "smtp")
+ '(smtpmail-smtp-user "zombywuf")
+ '(smtpmail-stream-type (quote starttls))
+ '(user-mail-address "steve@secretvolcanobase.org")
  '(vc-delete-logbuf-window nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -408,6 +437,7 @@ be made buffer local and set to the file type in load hooks.")
  '(font-lock-keyword-face ((((class color) (min-colors 88) (background light)) (:foreground "Purple3"))))
  '(font-lock-string-face ((((class color) (min-colors 88) (background light)) (:foreground "darkgreen"))))
  '(font-lock-variable-name-face ((((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
+ '(gnus-header-content ((t (:foreground "indianred4"))))
  '(italic ((((supports :underline t)) (:slant italic))))
  '(org-agenda-done ((t (:foreground "dark green"))))
  '(org-agenda-structure ((t (:foreground "dark blue"))))
