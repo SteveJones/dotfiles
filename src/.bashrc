@@ -221,7 +221,7 @@ if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
     . /etc/bash_completion
 fi
 
-export PYTHONPATH=~/code/miyamoto
+export PYTHONPATH=~/code/miyamoto:~/code/hanzo-warc-tools
 export PYTHONSTARTUP=~/.pythonrc.py
 
 export PATH="$HOME/bin:$PATH"
