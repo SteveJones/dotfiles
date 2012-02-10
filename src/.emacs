@@ -296,7 +296,11 @@ be made buffer local and set to the file type in load hooks.")
   (hs-minor-mode)
   (flyspell-prog-mode)
   (local-set-key (kbd "C-c f") 'python-describe-symbol)
-  (setq ack-type "python"))
+  (setq ack-type "python")
+  (add-hook 'local-write-file-hooks
+	    '(lambda()
+	       (save-excursion
+		 (delete-trailing-whitespace)))))
 
 (add-hook 'python-mode-hook 'my-python-mode-hook)
 
@@ -396,6 +400,8 @@ be made buffer local and set to the file type in load hooks.")
  '(ispell-dictionary "british")
  '(ispell-local-dictionary "british")
  '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
+ '(mm-text-html-renderer (quote w3m))
+ '(mm-verify-option (quote always))
  '(org-agenda-diary-file "~/org/diary.org")
  '(org-agenda-files (quote ("~/org/notes.org" "~/org/personal.org" "~/org/hanzo.org" "~/org/diary.org")))
  '(org-babel-load-languages (quote ((emacs-lisp . t) (python . t) (awk . t) (sh . t) (R . t) (sql . t))))
