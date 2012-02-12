@@ -268,6 +268,7 @@ be made buffer local and set to the file type in load hooks.")
            (local-file (file-relative-name
                         temp-file
                         (file-name-directory buffer-file-name))))
+      
       (list "epylint" (list local-file))))
   
   (add-to-list 'flymake-allowed-file-name-masks
@@ -389,6 +390,8 @@ be made buffer local and set to the file type in load hooks.")
  '(compilation-window-height 20)
  '(confluence-default-space-alist (quote (("https://hq.hanzoarchives.com/confluence/rpc/xmlrpc" . "dashboard"))))
  '(confluence-url "https://hq.hanzoarchives.com/confluence/rpc/xmlrpc")
+ '(dvc-confirm-add nil)
+ '(dvc-tips-enabled nil)
  '(fill-column 78)
  '(gnus-ignored-newsgroups "")
  '(gnus-select-method (quote (nnimap "mail.secretvolcanobase.org")))
