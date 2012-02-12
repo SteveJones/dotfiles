@@ -105,7 +105,7 @@ function git_changed {
     local CHANGES
     CHANGES="$(git status --porcelain)"
     if [ $? -eq 0 ]; then
-	local CH_COUNT="$(echo "$CHANGES" | grep -v '^??' | wc -l)"
+	local CH_COUNT="$(echo "$CHANGES" | grep '^[^?][^?]' | wc -l)"
 	echo "$CH_COUNT"
     fi
 }
