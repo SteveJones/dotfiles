@@ -170,6 +170,24 @@ function ps1_update {
     PS1="$PS1_HOST$PS1_PATH$PS1_STATUS\[\033[00m\]\$ "
 }
 
+function s {
+    if [ "x" == "x$1" ]; then
+	ls -lh --color=auto
+	return
+    fi
+    TYPE="$(file -b --mime-type "$1")"
+    case "$TYPE" in
+	application/x-directory)
+	    ls -lh --color=auto "$1"
+	    ;;
+	text/*)
+	    less "$1"
+	    ;;
+	*)
+	    echo "unknown file type $TYPE" 1>&2
+    esac
+}
+
 PROMPT_COMMAND="ps1_update"
 
 if [ "$color_prompt" = yes ]; then
@@ -227,6 +245,7 @@ export PYTHONSTARTUP=~/.pythonrc.py
 export PATH="$HOME/bin:$PATH"
 
 export LESSOPEN="| $HOME/bin/lesspipe.sh %s"
-export LESS="-R"
+export LESS="-RFNJ"
+export MANPAGER="less -sn" # disable line numbers in man, they're meaningless and mess up the formatting
 
 bind '"\e/":dabbrev-expand'
