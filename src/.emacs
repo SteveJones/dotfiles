@@ -226,7 +226,9 @@ be made buffer local and set to the file type in load hooks.")
 (defun ack-get-query (prompt)
   (let ((default (thing-at-point 'symbol)))
     (read-string
-     (concat prompt " (default " default "): ")
+     (if default
+	 (concat prompt " (default " default "): ")
+       (concat prompt ": "))
      nil
      'ack-history
      default)))
