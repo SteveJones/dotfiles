@@ -58,6 +58,32 @@
 
 (global-set-key (kbd "C-x C-h") 'de-camel)
 
+(setq minibuffer-frame-alist '((width . 80) (height . 3)))
+
+(defun my-org-agenda-format-date-aligned (date)
+  "Format a date string for display in the daily/weekly agenda, or timeline.
+This function makes sure that dates are aligned for easy reading."
+  (require 'cal-iso)
+  (let* ((dayname (calendar-day-name date))
+	 (day (cadr date))
+	 (day-of-week (calendar-day-of-week date))
+	 (month (car date))
+	 (monthname (calendar-month-name month))
+	 (year (nth 2 date))
+	 (iso-week (org-days-to-iso-week
+		    (calendar-absolute-from-gregorian date)))
+	 (weekyear (cond ((and (= month 1) (>= iso-week 52))
+			  (1- year))
+			 ((and (= month 12) (<= iso-week 1))
+			  (1+ year))
+			 (t year)))
+	 (weekstring (if (= day-of-week 1)
+			 (format " W%02d" iso-week)
+		       "")))
+    (format "%-10s %2d %-10s %4d%s"
+	    dayname day monthname year weekstring)))
+
+
 (setq tester-file-patterns
   (list
    (list "\\.py$"
@@ -380,6 +406,7 @@ be made buffer local and set to the file type in load hooks.")
 	       (nnimap-stream ssl)))
 
 (require 'smtpmail)
+(server-start)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -388,6 +415,7 @@ be made buffer local and set to the file type in load hooks.")
  ;; If there is more than one, they won't work right.
  '(compilation-skip-threshold 1)
  '(compilation-window-height 20)
+ '(completion-ignored-extensions (quote (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".dfsl" ".pfsl" ".d64fsl" ".p64fsl" ".lx64fsl" ".lx32fsl" ".dx64fsl" ".dx32fsl" ".fx64fsl" ".fx32fsl" ".sx64fsl" ".sx32fsl" ".wx64fsl" ".wx32fsl" ".fasl" ".ufsl" ".fsl" ".dxl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".vr" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" ".orig")))
  '(confluence-default-space-alist (quote (("https://hq.hanzoarchives.com/confluence/rpc/xmlrpc" . "dashboard"))))
  '(confluence-url "https://hq.hanzoarchives.com/confluence/rpc/xmlrpc")
  '(dvc-confirm-add nil)
@@ -400,25 +428,54 @@ be made buffer local and set to the file type in load hooks.")
  '(hs-hide-comments-when-hiding-all nil)
  '(ido-everywhere t)
  '(ido-mode (quote both) nil (ido))
+ '(imenu-auto-rescan t)
  '(ispell-dictionary "british")
  '(ispell-local-dictionary "british")
  '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
  '(mm-text-html-renderer (quote w3m))
  '(mm-verify-option (quote always))
+ '(org-agenda-custom-commands (quote (("h" "Agenda + household TODOs" ((agenda "" nil) (tags-todo "@home|garden|bill" nil)) nil) ("T" "In Town" ((agenda "" ((org-agenda-span (quote day)))) (tags-todo "@town|shopping" nil)) nil))))
+ '(org-agenda-deadline-faces (quote ((1.0 . org-warning) (0.5 . org-upcoming-deadline) (0.0 . default))))
  '(org-agenda-diary-file "~/org/diary.org")
- '(org-agenda-files (quote ("~/org/notes.org" "~/org/personal.org" "~/org/hanzo.org" "~/org/diary.org")))
+ '(org-agenda-files (quote ("~/org/notes.org" "~/org/personal.org" "~/org/hanzo.org" "~/org/diary.org" "~/org/shopping.org")))
+ '(org-agenda-format-date (quote my-org-agenda-format-date-aligned))
+ '(org-agenda-menu-show-matcher t)
+ '(org-agenda-menu-two-column nil)
+ '(org-agenda-tags-todo-honor-ignore-options t)
+ '(org-agenda-todo-ignore-deadlines (quote near))
+ '(org-agenda-todo-ignore-scheduled (quote all))
+ '(org-agenda-todo-ignore-timestamp nil)
  '(org-babel-load-languages (quote ((emacs-lisp . t) (python . t) (awk . t) (sh . t) (R . t) (sql . t))))
- '(org-capture-templates (quote (("s" "Shopping list item" entry (file+headline "~/org/notes.org" "Shopping list") "* NEED") ("f" "Note about current file" entry (file+headline "~/org/notes.org" "Code notes") (function generate-file-template)) ("n" "Note" entry (file+headline "~/org/notes.org" "Notes") "* %T") ("w" "Work Task" entry (file+headline "~/org/notes.org" "Tasks") "* TODO %U
-:PROPERTIES:
-:report to:
-:END:") ("t" "Task" entry (file+headline "~/org/notes.org" "Tasks") "* TODO %U"))))
+ '(org-capture-templates (quote (("e" "Event" entry (file "~/org/diary.org") "* %?
+  :PROPERTIES:
+  :created: %U
+  :END:") ("s" "Shopping list item" entry (file+headline "~/org/shopping.org" "Shopping list") "* NEED %? :shopping:
+ :PROPERTIES:
+ :created: %U
+ :END:") ("f" "Note about current file" entry (file+headline "~/org/notes.org" "Code notes") (function generate-file-template)) ("n" "Note" entry (file+headline "~/org/notes.org" "Notes") "* %?
+ :PROPERTIES:
+ :created: %U
+ :END:") ("w" "Work Task" entry (file+headline "~/org/notes.org" "Tasks") "* TODO %?
+ DEADLINE: %^{DEADLINE}T
+ :PROPERTIES:
+ :created: %U
+ :END:
+%^{report to}p") ("t" "Task" entry (file+headline "~/org/notes.org" "Tasks") "* TODO %?
+ DEADLINE: %^T
+ :PROPERTIES:
+ :created: %U
+ :END:"))))
  '(org-default-notes-file "~/org/notes.el")
- '(org-modules (quote (org-bbdb org-bibtex org-docview org-gnus org-info org-jsinfo org-habit org-irc org-mew org-mhe org-rmail org-vm org-wl org-w3m org-git-link)))
+ '(org-mobile-inbox-for-pull "~/org/from-mobile.org")
+ '(org-modules (quote (org-bbdb org-bibtex org-docview org-gnus org-info org-jsinfo org-habit org-irc org-mew org-mhe org-protocol org-rmail org-vm org-wl org-w3m org-choose org-collector org-drill org-git-link org-jira orgtbl-sqlinsert)))
+ '(org-refile-targets (quote ((org-agenda-files :maxlevel . 10))))
  '(org-src-fontify-natively t)
+ '(org-tag-persistent-alist (quote ((:startgroup) ("@code" . 99) ("@home" . 104) ("@town" . 116) (:endgroup) ("bill" . 98) ("shopping" . 115))))
  '(org-todo-keywords (quote ((sequence "TODO" "DONE"))))
  '(read-mail-command (quote gnus))
  '(remember-data-file "~/remember.org")
  '(send-mail-function (quote smtpmail-send-it))
+ '(sentence-end-double-space nil)
  '(smtpmail-debug-info t)
  '(smtpmail-local-domain nil)
  '(smtpmail-smtp-server "mail.secretvolcanobase.org")
@@ -448,12 +505,18 @@ be made buffer local and set to the file type in load hooks.")
  '(font-lock-variable-name-face ((((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
  '(gnus-header-content ((t (:foreground "indianred4"))))
  '(italic ((((supports :underline t)) (:slant italic))))
+ '(org-agenda-date ((t (:inherit org-agenda-structure :height 1.5))) t)
+ '(org-agenda-date-today ((t (:inherit org-agenda-date :background "gray90" :slant italic :weight bold))) t)
+ '(org-agenda-date-weekend ((t (:inherit org-agenda-date :foreground "grey20"))) t)
  '(org-agenda-done ((t (:foreground "dark green"))))
- '(org-agenda-structure ((t (:foreground "dark blue"))))
+ '(org-agenda-structure ((t (:foreground "dark blue" :box (:line-width 8 :color "white") :underline t))))
  '(org-block-background ((t (:background "grey90"))))
  '(org-done ((t (:background "ForestGreen" :foreground "white" :box (:line-width 2 :color "darkgreen" :style released-button) :weight bold))))
+ '(org-scheduled-today ((t (:foreground "Green4" :weight bold))))
  '(org-table ((t (:foreground "grey20" :box (:line-width 1 :color "grey75")))))
+ '(org-tag ((t (:box (:line-width 2 :color "blue") :weight bold))))
  '(org-todo ((t (:background "red1" :foreground "white" :box (:line-width 2 :color "red4" :style released-button) :weight bold))))
+ '(org-upcoming-deadline ((t (:inherit default :weight bold))))
  '(outline-1 ((t (:foreground "medium blue" :weight bold :height 1.3))))
  '(outline-2 ((t (:foreground "medium blue" :weight bold :height 1.1))))
  '(outline-3 ((t (:foreground "medium blue" :weight bold))))
