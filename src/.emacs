@@ -219,11 +219,11 @@ be made buffer local and set to the file type in load hooks.")
 (make-variable-buffer-local 'ack-type)
 
 (defun run-ack (type query directory)
-  (compilation-start (concat "ack-grep -H --nogroup --nocolor --" type " '" query "' '" directory "'") 'grep-mode))
+  (compilation-start (concat "ack-grep -H --nogroup --color --column --" type " '" query "' '" directory "'") 'grep-mode))
 
 (defvar ack-history nil)
 
-(defun ack-get-query (prompt)
+(defun get-symbol-prompt (prompt)
   (let ((default (thing-at-point 'symbol)))
     (read-string
      (if default
@@ -235,7 +235,7 @@ be made buffer local and set to the file type in load hooks.")
 
 (defun ack ()
   (interactive)
-  (let ((query (ack-get-query "Ack")))
+  (let ((query (get-symbol-prompt "Ack")))
     (if (string= query "")
 	()
       (add-to-list 'ack-history query)
@@ -363,6 +363,48 @@ be made buffer local and set to the file type in load hooks.")
   (setq ack-type "cpp"))
 
 (add-hook 'c++-mode-hook 'my-c++-mode-hook)
+
+(defun url-safe-p (c)
+  "True if the character is safe to use in a url without encoding."
+  (and (and (> c 32) (< c 128))
+       (not (member c '(?: ?/ ?? ?# ?[ ?] ?@ ?! ?$ ?& ?' ?( ?) ?* ?+ ?, ?\; ?=)))))
+
+(defun url-encode-char (c)
+  "Url encodes a single character, returns a string."
+  (cond ((= ?  c) "+")
+	((url-safe-p c) (char-to-string c))
+	('t (format "%%%02x" c))))
+
+(defun url-encode (string)
+  "Returns the url encoded value of its argument."
+  (mapconcat 'url-encode-char (encode-coding-string string 'utf-8) ""))
+
+(defun postgres-w3m-find-results (url)
+  (if (string-prefix-p "http://www.postgresql.org/search/" url)
+      (search-forward "1.")
+    (recenter-top-bottom 3)))
+
+(add-hook 'w3m-display-hook 'postgres-w3m-find-results)
+
+(defun postgres-get-help (symbol)
+  (w3m (concat
+	"http://www.postgresql.org/search/?u=%2Fdocs%2F9.1%2F&q="
+	(url-encode symbol))))
+
+(defvar postgres-help-history nil)
+
+(defun postgres-help ()
+  (interactive)
+  (let ((query (get-symbol-prompt "Postgres docs")))
+    (unless (string= query "")
+      (add-to-list 'postgres-help-history query)
+      (postgres-get-help query))))
+
+(defun my-sql-mode-hook ()
+  (local-set-key (kbd "C-c f") 'postgres-help)
+  (setq ack-type "sql"))
+
+(add-hook 'sql-mode-hook 'my-sql-mode-hook)
 
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(boost-test-failure "^\\([^(]+\\)(\\([[:digit:]]+\\)):\\s-+fatal\\s-+error"))
