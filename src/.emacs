@@ -258,7 +258,9 @@ be made buffer local and set to the file type in load hooks.")
   (make-local-variable 'hippie-expand-try-functions-list)
   (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol t)
   (add-to-list 'hippie-expand-try-functions-list 'try-complete-lisp-symbol-partially t)
-  (setq ack-type "elisp"))
+  (setq ack-type "elisp")
+  (make-local-variable 'w3m-search-default-engine)
+  (setq w3m-search-default-engine "emacswiki"))
 
 (add-hook 'emacs-lisp-mode-hook 'my-emacs-lisp-mode-hook)
 
