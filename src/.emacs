@@ -249,8 +249,24 @@ be made buffer local and set to the file type in load hooks.")
       (add-to-list 'ack-history query)
       (run-ack "all" query (project-root)))))
 
-(global-set-key (kbd "C-c g") 'w3m-search)
-(global-set-key (kbd "C-c S-g") (lambda () (w3m-search "google")))
+(defun w3m-search-at-point ()
+  "Do a web search with a default query of the symbol at the
+point"
+  (interactive)
+  (w3m-search
+   w3m-search-default-engine
+   (get-symbol-prompt (concat "Search " w3m-search-default-engine))))
+
+(defun w3m-google-at-point ()
+  "Do a google search with a default query of the symbol at the point."
+  (interactive)
+  (w3m-search
+   "google"
+   (get-symbol-prompt "Search Google")))
+  
+
+(global-set-key (kbd "C-c g") 'w3m-search-at-point)
+(global-set-key (kbd "C-c C-g") 'w3m-google-at-point)
 
 (defun my-emacs-lisp-mode-hook ()
   (flyspell-prog-mode)
