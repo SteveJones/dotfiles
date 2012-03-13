@@ -223,22 +223,23 @@ be made buffer local and set to the file type in load hooks.")
 
 (defvar ack-history nil)
 
-(defun get-symbol-prompt (prompt)
-  (let ((default (thing-at-point 'symbol)))
-    (read-string
-     (if default
-	 (concat prompt " (default " default "): ")
-       (concat prompt ": "))
-     nil
-     'ack-history
-     default)))
+(defun get-symbol-prompt (prompt history)
+  (let* ((default (thing-at-point 'symbol))
+	 (string (read-string
+		  (if default
+		      (concat prompt " (default " default "): ")
+		    (concat prompt ": "))
+		  nil
+		  history
+		  default)))
+    (unless (string= string "")
+	(add-to-list history string))
+    string))
 
 (defun ack ()
   (interactive)
-  (let ((query (get-symbol-prompt "Ack")))
-    (if (string= query "")
-	()
-      (add-to-list 'ack-history query)
+  (let ((query (get-symbol-prompt "Ack" 'ack-history)))
+    (unless (string= query "")
       (run-ack ack-type query (project-root)))))
 
 (defun ack-all ()
@@ -249,20 +250,24 @@ be made buffer local and set to the file type in load hooks.")
       (add-to-list 'ack-history query)
       (run-ack "all" query (project-root)))))
 
+(defvar w3m-search-history nil)
+
 (defun w3m-search-at-point ()
   "Do a web search with a default query of the symbol at the
 point"
   (interactive)
   (w3m-search
    w3m-search-default-engine
-   (get-symbol-prompt (concat "Search " w3m-search-default-engine))))
+   (get-symbol-prompt
+    (concat "Search " w3m-search-default-engine)
+    'w3m-search-history)))
 
 (defun w3m-google-at-point ()
   "Do a google search with a default query of the symbol at the point."
   (interactive)
   (w3m-search
    "google"
-   (get-symbol-prompt "Search Google")))
+   (get-symbol-prompt "Search Google" 'w3m-search-history)))
   
 
 (global-set-key (kbd "C-c g") 'w3m-search-at-point)
