@@ -352,6 +352,8 @@ point"
   (flyspell-prog-mode)
   (local-set-key (kbd "C-c f") 'python-describe-symbol)
   (setq ack-type "python")
+  (make-local-variable 'w3m-search-default-engine)
+  (setq w3m-search-default-engine "python")
   (add-hook 'local-write-file-hooks
 	    '(lambda()
 	       (save-excursion
