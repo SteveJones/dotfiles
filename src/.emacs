@@ -1,7 +1,7 @@
 (require 'ido)
 (require 'imenu)
 (require 'cl)
-(require 'tramp)
+;(require 'tramp)
 (if (file-exists-p "~/code/emacsweblogs/lisp")
     (progn
       (add-to-list 'load-path "~/code/emacsweblogs/lisp")
@@ -23,12 +23,24 @@
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (require 'org)
 
+(defun run-unit-tests ()
+  (interactive)
+  (let ((dir (pwd)))
+    (unwind-protect
+	(progn
+	  (cd "/home/stephenjones/code/miyamoto/")
+	  (compile "DISPLAY=:6 unit2 discover -p '*_test.py' tests"))
+      (cd dir))))
+
+
 (setq tramp-default-method "scpc")
 
 (global-set-key (kbd "C-c a") 'org-agenda)
 (global-set-key (kbd "C-c c") 'org-capture)
 (setq org-clock-persist 'history)
 (org-clock-persistence-insinuate)
+
+(global-set-key (kbd "C-x O") 'previous-multiframe-window)
 
 (setq org-mobile-inbox-for-pull "~/org/flagged")
 (setq org-mobile-directory "/mnt/hgfs/stephenjones/Dropbox/org")
@@ -190,7 +202,6 @@ This function makes sure that dates are aligned for easy reading."
 (add-hook 'message-mode-hook 'turn-on-flyspell)
 (add-hook 'text-mode-hook 'turn-on-flyspell)
 (add-hook 'tcl-mode-hook 'flyspell-prog-mode)
-(add-hook 'sql-mode-hook 'flyspell-prog-mode)
 
 (defun project-root ()
   (let* ((path (buffer-file-name))
@@ -219,7 +230,7 @@ be made buffer local and set to the file type in load hooks.")
 (make-variable-buffer-local 'ack-type)
 
 (defun run-ack (type query directory)
-  (compilation-start (concat "ack-grep -H --nogroup --color --column --" type " '" query "' '" directory "'") 'grep-mode))
+  (compilation-start (concat "ack-grep -i -H --nogroup --color --column --" type " '" query "' '" directory "'") 'grep-mode))
 
 (defvar ack-history nil)
 
@@ -384,10 +395,29 @@ point"
 
 (add-hook 'c-mode-hook 'my-c-mode-hook)
 
+(define-skeleton cpp-boost-test-case
+  "Insert a boost auto test case"
+  "Name: "
+  > "BOOST_AUTO_TEST_CASE(" str ") {" \n
+  > _ \n
+  "}" \n)
+
+(defun cpp-run-tests ()
+  (interactive)
+  (let ((make-path (expand-file-name (locate-dominating-file (buffer-file-name) "Makefile"))))
+    (message make-path)
+    (if (not make-path)
+	(error "Couldn't locate makefile"))
+    (compile (concat "cd " make-path " && make test"))))
+
+
 (defun my-c++-mode-hook ()
   (flymake-mode)
   (hs-minor-mode)
   (local-set-key (kbd "C-c f") 'manual-entry)
+  (local-set-key (kbd "C-c C-t") 'cpp-boost-test-case)
+  (local-set-key (kbd "C-c C-m") 'compile)
+  (local-set-key (kbd "C-c C-c") 'cpp-run-tests)
   (setq ack-type "cpp"))
 
 (add-hook 'c++-mode-hook 'my-c++-mode-hook)
@@ -428,13 +458,75 @@ point"
       (add-to-list 'postgres-help-history query)
       (postgres-get-help query))))
 
+(defun psql-run-file ()
+  (interactive)
+  (compile (concat "psql miyamoto -P pager -f " buffer-file-name)))
+
+(defun psql-run-line ()
+  (interactive)
+  (let* ((beg (save-excursion
+	       (beginning-of-line)
+	       (point)))
+	(end (save-excursion
+	       (end-of-line)
+	       (point)))
+	(line (buffer-substring-no-properties beg end)))
+    (shell-command (concat
+		    "psql miyamoto -c '"
+		    (replace-regexp-in-string "'" "'\\''" line)
+		    "'"))))
+    
+(defvar postgres-block-starters '("select"))
+(defvar postgres-block-keywords '("from"))
+(defvar postgres-block-interesting (append postgres-block-starters postgres-block-keywords))
+
+(defun postgres-begining-of-block ()
+  (interactive)
+  (let ((start-re (regexp-opt (cons ")" postgres-block-starters))))
+    (search-backward-regexp start-re)
+    (while (string-equal (match-string 0) ")")
+      (forward-char)
+      (backward-sexp)
+      (search-backward-regexp start-re))))
+
+
+(defun postgres-indent ()
+  (interactive)
+  (let ((interesting-re (regexp-opt postgres-block-interesting))
+	(block-indent 0))
+    (save-excursion
+      (if (eq (line-number-at-pos) 1)
+	  (setq block-indent 0)
+	(beginning-of-line)
+	(if (looking-at interesting-re)
+	    (progn
+	      (previous-line)
+	      (setq block-indent 
+	  
+	(while (not (looking-at interesting-re))
+	  (previous-line))
+	(setq block-indent (current-indentation))))
+    (indent))))))
+
+(defun current-error ()
+  (interactive)
+  (with-current-buffer next-error-last-buffer
+    (let* ((msg (compilation-next-error 0))
+	   (loc (compilation--message->loc msg))
+	   (end-loc (compilation--message->end-loc msg)))
+      (buffer-substring loc end-loc))))
+
 (defun my-sql-mode-hook ()
   (local-set-key (kbd "C-c f") 'postgres-help)
+  (local-set-key (kbd "C-c C-b") 'psql-run-file)
+  (local-set-key (kbd "C-c C-l") 'psql-run-line)
   (setq ack-type "sql")
   (make-local-variable 'w3m-search-default-engine)
-  (setq w3m-search-default-engine "postgres"))
+  (setq w3m-search-default-engine "postgres")
+  (flyspell-prog-mode))
 
 (add-hook 'sql-mode-hook 'my-sql-mode-hook)
+
 
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(boost-test-failure "^\\([^(]+\\)(\\([[:digit:]]+\\)):\\s-+fatal\\s-+error"))
@@ -450,8 +542,14 @@ point"
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(miyamoto-info "^[[:digit:]-T:]\\{19\\}Z\\s-+\\(INFO\\|DEBUG\\)\\s-\\([^:]+\\):\\([[:digit:]]+\\)"
 			     2 3 nil 0))
+
 (add-to-list 'compilation-error-regexp-alist 'miyamoto-error)
 (add-to-list 'compilation-error-regexp-alist 'miyamoto-info)
+
+(add-to-list 'compilation-error-regexp-alist-alist
+	     '(cheetah-template-error "^Line \\([[:digit:]]+\\), column \\([[:digit:]]+\\) in file \\(.*\\)$"
+				      3 1 2))
+(add-to-list 'compilation-error-regexp-alist 'cheetah-template-error)
 
 (defun miyamoto-test ()
   (interactive)
@@ -467,11 +565,14 @@ point"
 ;(setq compilation-error-regexp-alist-alist (assq-delete-all 'psql-info compilation-error-regexp-alist-alist))
 
 (add-to-list 'compilation-error-regexp-alist-alist
-	     '(psql-notice "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+NOTICE" 1 2 nil 0))
+	     '(psql-notice "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+\\(NOTICE\\):\\s-+\\(.*\\)" 1 2 nil 0 4 (3 'warning)))
 (add-to-list 'compilation-error-regexp-alist-alist
-	     '(psql-error "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+ERROR" 1 2 nil 2))
+	     '(psql-error "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+\\(ERROR\\):\\s-+\\(.*\\)" 1 2 nil 2 4 (3 'error)))
+(add-to-list 'compilation-error-regexp-alist-alist
+	     '(psql-function "^PL/pgSQL function \"\\([^\"]+\\)\" line \\([[:digit:]]+\\)" nil 2 nil nil nil (1 'font-lock-function-name-face)))
 (add-to-list 'compilation-error-regexp-alist 'psql-notice)
 (add-to-list 'compilation-error-regexp-alist 'psql-error)
+(add-to-list 'compilation-error-regexp-alist 'psql-function)
 
 (setq gnus-select-method 
       '(nnimap "mail.secretvolcanobase.org"
@@ -480,13 +581,15 @@ point"
 	       (nnimap-stream ssl)))
 
 (require 'smtpmail)
-(server-start)
+;(server-start)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(compilation-auto-jump-to-first-error t)
+ '(compilation-message-face (quote highlight))
  '(compilation-skip-threshold 1)
  '(compilation-window-height 20)
  '(completion-ignored-extensions (quote (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".dfsl" ".pfsl" ".d64fsl" ".p64fsl" ".lx64fsl" ".lx32fsl" ".dx64fsl" ".dx32fsl" ".fx64fsl" ".fx32fsl" ".sx64fsl" ".sx32fsl" ".wx64fsl" ".wx32fsl" ".fasl" ".ufsl" ".fsl" ".dxl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".vr" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" ".orig")))
@@ -500,6 +603,8 @@ point"
  '(gnus-summary-line-format "%U%R%z%>%(%[%-23,23f%]%) %s
 ")
  '(hs-hide-comments-when-hiding-all nil)
+ '(ido-auto-merge-delay-time 99999)
+ '(ido-enable-flex-matching t)
  '(ido-everywhere t)
  '(ido-mode (quote both) nil (ido))
  '(imenu-auto-rescan t)
@@ -541,7 +646,7 @@ point"
  :END:"))))
  '(org-default-notes-file "~/org/notes.el")
  '(org-mobile-inbox-for-pull "~/org/from-mobile.org" t)
- '(org-modules (quote (org-bbdb org-bibtex org-docview org-gnus org-info org-jsinfo org-habit org-irc org-mew org-mhe org-protocol org-rmail org-vm org-wl org-w3m org-choose org-collector org-drill org-git-link org-jira orgtbl-sqlinsert)))
+ '(org-modules (quote (org-bbdb org-bibtex org-docview org-gnus org-info org-jsinfo org-habit org-irc org-mew org-mhe org-protocol org-rmail org-vm org-wl org-w3m)))
  '(org-refile-targets (quote ((org-agenda-files :maxlevel . 10))))
  '(org-src-fontify-natively t)
  '(org-tag-persistent-alist (quote ((:startgroup) ("@code" . 99) ("@home" . 104) ("@town" . 116) (:endgroup) ("bill" . 98) ("shopping" . 115))))
@@ -564,31 +669,34 @@ point"
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "white" :foreground "black" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 100 :width normal :foundry "unknown" :family "Inconsolata"))))
- '(flymake-errline ((((class color) (background light)) (:underline "red"))))
- '(flymake-warnline ((((class color) (background light)) (:underline "steelblue"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 121 :width normal :foundry "unknown" :family "Inconsolata"))))
+ '(bold-italic ((t (:foreground "grey90" :slant italic :weight bold))))
+ '(error ((t (:foreground "orangered" :weight bold))))
+ '(flymake-errline ((((class color) (min-colors 88) (background dark)) (:underline "red")) (((class color) (background light)) (:underline "red"))))
+ '(flymake-warnline ((((class color) (min-colors 88) (background dark)) (:underline "yellow3")) (((class color) (background light)) (:underline "steelblue"))))
  '(flyspell-duplicate ((t (:underline "gold4"))))
  '(flyspell-incorrect ((t (:underline "red"))))
- '(font-lock-builtin-face ((((class color) (min-colors 88) (background light)) (:foreground "blue1"))))
+ '(font-lock-builtin-face ((((class color) (min-colors 88) (background dark)) (:foreground "lightsteelblue")) (((class color) (min-colors 88) (background light)) (:foreground "blue1"))))
  '(font-lock-comment-delimiter-face ((default (:foreground "Firebrick4")) (((class color) (min-colors 16)) nil)))
- '(font-lock-comment-face ((((class color) (min-colors 88) (background light)) (:foreground "brown"))))
- '(font-lock-constant-face ((((class color) (min-colors 88) (background light)) (:foreground "salmon4"))))
+ '(font-lock-comment-face ((((class color) (min-colors 88) (background dark)) (:foreground "Firebrick1")) (((class color) (min-colors 88) (background light)) (:foreground "brown"))))
+ '(font-lock-constant-face ((((class color) (min-colors 88) (background dark)) (:foreground "salmon")) (((class color) (min-colors 88) (background light)) (:foreground "salmon4"))))
  '(font-lock-doc-face ((t (:foreground "darkslategrey"))))
- '(font-lock-function-name-face ((((class color) (min-colors 88) (background light)) (:foreground "Blue3"))))
- '(font-lock-keyword-face ((((class color) (min-colors 88) (background light)) (:foreground "Purple3"))))
- '(font-lock-string-face ((((class color) (min-colors 88) (background light)) (:foreground "darkgreen"))))
- '(font-lock-variable-name-face ((((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
+ '(font-lock-function-name-face ((((class color) (min-colors 88) (background dark)) (:foreground "deep sky blue")) (((class color) (min-colors 88) (background light)) (:foreground "Blue3"))))
+ '(font-lock-keyword-face ((((class color) (min-colors 88) (background dark)) (:foreground "pink")) (((class color) (min-colors 88) (background light)) (:foreground "Purple3"))))
+ '(font-lock-string-face ((((class color) (min-colors 88) (background dark)) (:foreground "green2")) (((class color) (min-colors 88) (background light)) (:foreground "darkgreen"))))
+ '(font-lock-variable-name-face ((((class color) (min-colors 88) (background dark)) (:foreground "cornflower blue")) (((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
  '(gnus-header-content ((t (:foreground "indianred4"))))
+ '(highlight ((t (:background "grey20"))))
  '(italic ((((supports :underline t)) (:slant italic))))
  '(org-agenda-date ((t (:inherit org-agenda-structure :height 1.5))) t)
  '(org-agenda-date-today ((t (:inherit org-agenda-date :background "gray90" :slant italic :weight bold))) t)
  '(org-agenda-date-weekend ((t (:inherit org-agenda-date :foreground "grey20"))) t)
  '(org-agenda-done ((t (:foreground "dark green"))))
  '(org-agenda-structure ((t (:foreground "dark blue" :box (:line-width 8 :color "white") :underline t))))
- '(org-block-background ((t (:background "grey90"))))
+ '(org-block-background ((t (:background "grey80"))))
  '(org-done ((t (:background "ForestGreen" :foreground "white" :box (:line-width 2 :color "darkgreen" :style released-button) :weight bold))))
  '(org-scheduled-today ((t (:foreground "Green4" :weight bold))))
- '(org-table ((t (:foreground "grey20" :box (:line-width 1 :color "grey75")))))
+ '(org-table ((((class color) (min-colors 88) (background dark)) (:foreground "grey80" :box (:line-width 1 :color grey75))) (((class color) (min-colors 88) (background light)) (:foreground "grey20" :box (:line-width 1 :color "grey75")))))
  '(org-tag ((t (:box (:line-width 2 :color "blue") :weight bold))))
  '(org-todo ((t (:background "red1" :foreground "white" :box (:line-width 2 :color "red4" :style released-button) :weight bold))))
  '(org-upcoming-deadline ((t (:inherit default :weight bold))))
