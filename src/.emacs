@@ -330,11 +330,12 @@ point"
   (defun flymake-pylint-init ()
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
 		       'flymake-create-temp-intemp))
+	   (local-dir (file-name-directory buffer-file-name))
            (local-file (file-relative-name
                         temp-file
-                        (file-name-directory buffer-file-name))))
+                        local-dir)))
       
-      (list "epylint" (list local-file))))
+      (list "epylint" (list local-file) local-dir)))
   
   (add-to-list 'flymake-allowed-file-name-masks
                '("\\.py\\'" flymake-pylint-init))
@@ -355,6 +356,22 @@ point"
 
   (add-to-list 'flymake-err-line-patterns
 	       '("\\(.*\\) at \\([^ \n]+\\) line \\([0-9]+\\)[,.\n]" 2 3 nil 1)))
+
+(defun first-succ (list func)
+  (or (funcall func (car list))
+      (first-succ (cdr list) func)))
+
+(defun help-echo-at-point ()
+  (interactive)
+  (message
+   (first-succ
+    (overlays-at (point))
+    (lambda (overlay)
+      (overlay-get overlay 'help-echo)))))
+
+(global-set-key (kbd "C-h C-m") 'help-echo-at-point)
+(global-set-key (kbd "C->") 'flymake-goto-next-error)
+(global-set-key (kbd "C-<") 'flymake-goto-prev-error)
 
 (defun my-python-mode-hook ()
   (setq insert-tabs-mode '())
@@ -527,6 +544,19 @@ point"
 
 (add-hook 'sql-mode-hook 'my-sql-mode-hook)
 
+(global-set-key (kbd "C-' A") "∀")
+(global-set-key (kbd "C-' E") "∃")
+(global-set-key (kbd "C-' a") "∧")
+(global-set-key (kbd "C-' o") "∨")
+(global-set-key (kbd "C-' u") "∪")
+(global-set-key (kbd "C-' i") "∩")
+(global-set-key (kbd "C-' d") "⋅")
+(global-set-key (kbd "C-' c") "∘")
+(global-set-key (kbd "C-' x") "×")
+(global-set-key (kbd "C-' r") "→")
+(global-set-key (kbd "C-' l") "←")
+(global-set-key (kbd "C-' R") "⇢")
+(global-set-key (kbd "C-' L") "⇠")
 
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(boost-test-failure "^\\([^(]+\\)(\\([[:digit:]]+\\)):\\s-+fatal\\s-+error"))
@@ -598,6 +628,8 @@ point"
  '(dvc-confirm-add nil)
  '(dvc-tips-enabled nil)
  '(fill-column 78)
+ '(flymake-log-level 0)
+ '(global-ede-mode t)
  '(gnus-ignored-newsgroups "")
  '(gnus-select-method (quote (nnimap "mail.secretvolcanobase.org")))
  '(gnus-summary-line-format "%U%R%z%>%(%[%-23,23f%]%) %s
@@ -669,11 +701,12 @@ point"
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 121 :width normal :foundry "unknown" :family "Inconsolata"))))
- '(bold-italic ((t (:foreground "grey90" :slant italic :weight bold))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 100 :width normal :foundry "unknown" :family "Bitstream Vera Sans Mono"))))
+ '(bold ((t (:weight bold))))
+ '(bold-italic ((t (:slant italic :weight bold))))
  '(error ((t (:foreground "orangered" :weight bold))))
  '(flymake-errline ((((class color) (min-colors 88) (background dark)) (:underline "red")) (((class color) (background light)) (:underline "red"))))
- '(flymake-warnline ((((class color) (min-colors 88) (background dark)) (:underline "yellow3")) (((class color) (background light)) (:underline "steelblue"))))
+ '(flymake-warnline ((t (:underline "steelblue1" :slant italic))))
  '(flyspell-duplicate ((t (:underline "gold4"))))
  '(flyspell-incorrect ((t (:underline "red"))))
  '(font-lock-builtin-face ((((class color) (min-colors 88) (background dark)) (:foreground "lightsteelblue")) (((class color) (min-colors 88) (background light)) (:foreground "blue1"))))
@@ -687,7 +720,7 @@ point"
  '(font-lock-variable-name-face ((((class color) (min-colors 88) (background dark)) (:foreground "cornflower blue")) (((class color) (min-colors 88) (background light)) (:foreground "dark slate grey"))))
  '(gnus-header-content ((t (:foreground "indianred4"))))
  '(highlight ((t (:background "grey20"))))
- '(italic ((((supports :underline t)) (:slant italic))))
+ '(italic ((t (:slant italic))))
  '(org-agenda-date ((t (:inherit org-agenda-structure :height 1.5))) t)
  '(org-agenda-date-today ((t (:inherit org-agenda-date :background "gray90" :slant italic :weight bold))) t)
  '(org-agenda-date-weekend ((t (:inherit org-agenda-date :foreground "grey20"))) t)
@@ -696,7 +729,7 @@ point"
  '(org-block-background ((t (:background "grey80"))))
  '(org-done ((t (:background "ForestGreen" :foreground "white" :box (:line-width 2 :color "darkgreen" :style released-button) :weight bold))))
  '(org-scheduled-today ((t (:foreground "Green4" :weight bold))))
- '(org-table ((((class color) (min-colors 88) (background dark)) (:foreground "grey80" :box (:line-width 1 :color grey75))) (((class color) (min-colors 88) (background light)) (:foreground "grey20" :box (:line-width 1 :color "grey75")))))
+ '(org-table ((t (:foreground "grey20" :box (:line-width 1 :color "grey75")))))
  '(org-tag ((t (:box (:line-width 2 :color "blue") :weight bold))))
  '(org-todo ((t (:background "red1" :foreground "white" :box (:line-width 2 :color "red4" :style released-button) :weight bold))))
  '(org-upcoming-deadline ((t (:inherit default :weight bold))))
