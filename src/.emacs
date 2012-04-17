@@ -373,6 +373,18 @@ point"
 (global-set-key (kbd "C->") 'flymake-goto-next-error)
 (global-set-key (kbd "C-<") 'flymake-goto-prev-error)
 
+(defun access-run ()
+  (interactive)
+  (let* ((base (locate-dominating-file buffer-file-name "hanzo-warc-browser"))
+	 (run-dir (concat base "hanzo-warc-browser")))
+    (cd run-dir)
+    (compile "python browse.fcgi 8080")))
+    
+
+(defun maybe-access-run-hook ()
+  (if (locate-dominating-file buffer-file-name "hanzo-warc-browser")
+      (local-set-key (kbd "C-c C-c") 'access-run)))
+
 (defun my-python-mode-hook ()
   (setq insert-tabs-mode '())
   (flymake-mode)
@@ -388,6 +400,7 @@ point"
 		 (delete-trailing-whitespace)))))
 
 (add-hook 'python-mode-hook 'my-python-mode-hook)
+(add-hook 'python-mode-hook 'maybe-access-run-hook)
 
 (defun cperl-describe-symbol ()
   (interactive)
