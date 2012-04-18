@@ -505,7 +505,21 @@ point"
 		    "psql miyamoto -c '"
 		    (replace-regexp-in-string "'" "'\\''" line)
 		    "'"))))
-    
+
+(defun sql-string-escape (input)
+  (replace-regexp-in-string "'" "''" input))
+
+(defun psql-get-indexes ()
+  (interactive)
+  (let* ((table-name (symbol-name (symbol-at-point)))
+	 (sql-command (concat "select indexname, indexdef from pg_indexes where tablename ='"
+			      (sql-string-escape (downcase table-name))
+			      "'")))
+    (shell-command (concat
+		    "psql miyamoto -c "
+		    (shell-quote-argument sql-command))
+		   (concat "*" table-name " indexes*"))))
+
 (defvar postgres-block-starters '("select"))
 (defvar postgres-block-keywords '("from"))
 (defvar postgres-block-interesting (append postgres-block-starters postgres-block-keywords))
@@ -550,6 +564,7 @@ point"
   (local-set-key (kbd "C-c f") 'postgres-help)
   (local-set-key (kbd "C-c C-b") 'psql-run-file)
   (local-set-key (kbd "C-c C-l") 'psql-run-line)
+  (local-set-key (kbd "C-c C-i") 'psql-get-indexes)
   (setq ack-type "sql")
   (make-local-variable 'w3m-search-default-engine)
   (setq w3m-search-default-engine "postgres")
@@ -607,8 +622,27 @@ point"
 ;(setq compilation-error-regexp-alist-alist (assq-delete-all 'psql-error compilation-error-regexp-alist-alist))
 ;(setq compilation-error-regexp-alist-alist (assq-delete-all 'psql-info compilation-error-regexp-alist-alist))
 
+(defun filter (p l)
+  (if (not l)
+      ()
+    (if (funcall p (car l))
+	(cons (car l) (filter p (cdr l)))
+      (filter p (cdr l)))))
+
+(defmacro remove-from-list (l p)
+  (set 'l (filter p l)))
+
+;(setq foo '(1 2 3 4))
+;(remove-from-list foo (lambda (x) (> x 2)))
+;foo
+
+(defun careq (a b)
+  (equalp (car a) (car b)))
+
 (add-to-list 'compilation-error-regexp-alist-alist
-	     '(psql-notice "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+\\(NOTICE\\):\\s-+\\(.*\\)" 1 2 nil 0 4 (3 'warning)))
+	     '(psql-notice "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+\\(NOTICE\\):\\s-+\\(.*\\)" 1 2 nil 0 4)
+	     nil
+	     'careq)
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(psql-error "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+\\(ERROR\\):\\s-+\\(.*\\)" 1 2 nil 2 4 (3 'error)))
 (add-to-list 'compilation-error-regexp-alist-alist
@@ -656,6 +690,7 @@ point"
  '(ispell-dictionary "british")
  '(ispell-local-dictionary "british")
  '(jira-url "https://hq.hanzoarchives.com/jira/rpc/xmlrpc")
+ '(max-mini-window-height 2)
  '(mm-text-html-renderer (quote w3m))
  '(mm-verify-option (quote always))
  '(org-agenda-custom-commands (quote (("h" "Agenda + household TODOs" ((agenda "" nil) (tags-todo "@home|garden|bill" nil)) nil) ("T" "In Town" ((agenda "" ((org-agenda-span (quote day)))) (tags-todo "@town|shopping" nil)) nil))))
