@@ -101,6 +101,14 @@ function hg_changed {
     fi
 }
 
+function hg_branch {
+    hg branch
+}
+
+function git_branch {
+    git branch | grep '\*' | cut -c 3-
+}
+
 function git_changed {
     local CHANGES
     CHANGES="$(git status --porcelain)"
@@ -153,10 +161,11 @@ function ps1_update {
 
     local PS1_STATUS
     local STATUS_COLOUR="\[\033[00;33m\]"
+    local BRANCH_COLOUR="\[\033[00:31m\]"
     if [ "$VC_TYPE" = "hg" ]; then
-	PS1_STATUS="$STATUS_COLOUR($(hg_changed))"
+	PS1_STATUS="$STATUS_COLOUR(${BRANCH_COLOUR}$(hg_branch)$STATUS_COLOUR:$(hg_changed))"
     elif [ "$VC_TYPE" = "git" ]; then
-	PS1_STATUS="$STATUS_COLOUR($(git_changed))"
+	PS1_STATUS="$STATUS_COLOUR(${BRANCH_COLOUR}$(git_branch)$STATUS_COLOUR:$(git_changed))"
     elif [ "$VC_TYPE" = "bzr" ]; then
 	PS1_STATUS="$STATUS_COLOUR($(bzr_changed))"
     fi
