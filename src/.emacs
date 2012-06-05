@@ -355,7 +355,24 @@ point"
 		 flymake-get-real-file-name))
 
   (add-to-list 'flymake-err-line-patterns
-	       '("\\(.*\\) at \\([^ \n]+\\) line \\([0-9]+\\)[,.\n]" 2 3 nil 1)))
+	       '("\\(.*\\) at \\([^ \n]+\\) line \\([0-9]+\\)[,.\n]" 2 3 nil 1))
+
+  (defun flymake-d-init ()
+    (let* ((temp-file (flymake-init-create-temp-buffer-copy
+		       'flymake-create-temp-inplace))
+	   (local-file (file-relative-name
+			temp-file
+			(file-name-directory buffer-file-name))))
+      (list "dmd" (list "-unittest" "-c" "-wi" local-file))))
+
+  (add-to-list 'flymake-allowed-file-name-masks
+	       '(".+\\.d$"
+		 flymake-d-init
+		 flymake-simple-cleanup
+		 flymake-get-real-file-name))
+
+  (add-to-list 'flymake-err-line-patterns
+	       '("\\(.*\\)(\\([0-9]+\\)): \\(.*\\)" 1 2 nil 3)))
 
 (defun first-succ (list func)
   (or (funcall func (car list))
@@ -375,9 +392,10 @@ point"
 
 (defun access-run ()
   (interactive)
-  (let* ((base (locate-dominating-file buffer-file-name "hanzo-warc-browser"))
-	 (run-dir (concat base "hanzo-warc-browser")))
-    (cd run-dir)
+  (let ((base (locate-dominating-file buffer-file-name "hanzo-warc-browser")))
+    (if (not base)
+	(error "Attempt to run access outside of access directory"))
+    (cd (concat base "hanzo-warc-browser"))
     (compile "python browse.fcgi 8080")))
     
 
