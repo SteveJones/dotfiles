@@ -409,7 +409,7 @@ point"
 (defun maybe-access-run-hook ()
   (cond ((locate-dominating-file buffer-file-name "hanzo-warc-browser")
 	 (local-set-key (kbd "C-c C-c") 'access-run))
-	((locate-dominating-file buffer-file-name "setup.ay")
+	((locate-dominating-file buffer-file-name "setup.py")
 	 (local-set-key (kbd "C-c C-c") 'python-run-tests))))
 
 (defun my-python-mode-hook ()
