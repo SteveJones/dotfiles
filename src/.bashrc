@@ -75,11 +75,18 @@ function git_root {
     return $?
 }
 
+function bzr_root {
+    VC_ROOT="$(up_till_file .bzr)"
+    return $?
+}
+
 function vc_root {
     if hg_root; then
 	VC_TYPE="hg"
     elif git_root; then
 	VC_TYPE="git"
+    elif bzr_root; then
+	VC_TYPE="bzr"
     else
 	VC_TYPE="none"
     fi
@@ -94,11 +101,28 @@ function hg_changed {
     fi
 }
 
+function hg_branch {
+    hg branch
+}
+
+function git_branch {
+    git branch | grep '\*' | cut -c 3-
+}
+
 function git_changed {
     local CHANGES
     CHANGES="$(git status --porcelain)"
     if [ $? -eq 0 ]; then
-	local CH_COUNT="$(echo "$CHANGES" | grep -v '^??' | wc -l)"
+	local CH_COUNT="$(echo "$CHANGES" | grep '^[^?][^?]' | wc -l)"
+	echo "$CH_COUNT"
+    fi
+}
+
+function bzr_changed {
+    local CHANGES
+    CHANGES="$(bzr status -SV)"
+    if [ $? -eq 0 ]; then
+	local CH_COUNT="$(echo "$CHANGES" | grep . | wc -l)"
 	echo "$CH_COUNT"
     fi
 }
@@ -137,10 +161,13 @@ function ps1_update {
 
     local PS1_STATUS
     local STATUS_COLOUR="\[\033[00;33m\]"
+    local BRANCH_COLOUR="\[\033[00:31m\]"
     if [ "$VC_TYPE" = "hg" ]; then
-	PS1_STATUS="$STATUS_COLOUR($(hg_changed))"
+	PS1_STATUS="$STATUS_COLOUR(${BRANCH_COLOUR}$(hg_branch)$STATUS_COLOUR:$(hg_changed))"
     elif [ "$VC_TYPE" = "git" ]; then
-	PS1_STATUS="$STATUS_COLOUR($(git_changed))"
+	PS1_STATUS="$STATUS_COLOUR(${BRANCH_COLOUR}$(git_branch)$STATUS_COLOUR:$(git_changed))"
+    elif [ "$VC_TYPE" = "bzr" ]; then
+	PS1_STATUS="$STATUS_COLOUR($(bzr_changed))"
     fi
 
     local HOST_COLOUR="\[\033[00;32m\]"
@@ -150,6 +177,24 @@ function ps1_update {
     fi
 
     PS1="$PS1_HOST$PS1_PATH$PS1_STATUS\[\033[00m\]\$ "
+}
+
+function s {
+    if [ "x" == "x$1" ]; then
+	ls -lh --color=auto
+	return
+    fi
+    TYPE="$(file -b --mime-type "$1")"
+    case "$TYPE" in
+	application/x-directory)
+	    ls -lh --color=auto "$1"
+	    ;;
+	text/*)
+	    less "$1"
+	    ;;
+	*)
+	    echo "unknown file type $TYPE" 1>&2
+    esac
 }
 
 PROMPT_COMMAND="ps1_update"
@@ -203,10 +248,13 @@ if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
     . /etc/bash_completion
 fi
 
-export PYTHONPATH=~/code/miyamoto
+export PYTHONPATH=~/code/miyamoto:~/code/hanzo-warc-tools
 export PYTHONSTARTUP=~/.pythonrc.py
 
 export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
 export LESSOPEN="| $HOME/bin/lesspipe.sh %s"
-export LESS="-R"
+export LESS="-RFNJ"
+export MANPAGER="less -sn" # disable line numbers in man, they're meaningless and mess up the formatting
+
+bind '"\e/":dabbrev-expand'
