@@ -603,8 +603,8 @@ point"
 (global-set-key (kbd "C-' E") "∃")
 (global-set-key (kbd "C-' a") "∧")
 (global-set-key (kbd "C-' o") "∨")
-(global-set-key (kbd "C-' u") "∪")
-(global-set-key (kbd "C-' i") "∩")
+(global-set-key (kbd "C-' U") "∪")
+(global-set-key (kbd "C-' I") "∩")
 (global-set-key (kbd "C-' d") "⋅")
 (global-set-key (kbd "C-' c") "∘")
 (global-set-key (kbd "C-' x") "×")
@@ -612,6 +612,7 @@ point"
 (global-set-key (kbd "C-' l") "←")
 (global-set-key (kbd "C-' R") "⇢")
 (global-set-key (kbd "C-' L") "⇠")
+(global-set-key (kbd "C-' u") "μ")
 
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(boost-test-failure "^\\([^(]+\\)(\\([[:digit:]]+\\)):\\s-+fatal\\s-+error"))
@@ -692,7 +693,7 @@ point"
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(compilation-auto-jump-to-first-error t)
+ '(compilation-auto-jump-to-first-error nil)
  '(compilation-message-face (quote highlight))
  '(compilation-skip-threshold 1)
  '(compilation-window-height 20)
