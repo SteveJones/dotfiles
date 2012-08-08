@@ -459,13 +459,16 @@ point"
   > _ \n
   "}" \n)
 
+(defvar cpp-make-target "test")
+(make-variable-buffer-local 'cpp-make-target)
+
 (defun cpp-run-tests ()
   (interactive)
   (let ((make-path (expand-file-name (locate-dominating-file (buffer-file-name) "Makefile"))))
     (message make-path)
     (if (not make-path)
 	(error "Couldn't locate makefile"))
-    (compile (concat "cd " make-path " && make test"))))
+    (compile (concat "cd " make-path " && make " cpp-make-target))))
 
 
 (defun my-c++-mode-hook ()
@@ -763,6 +766,7 @@ point"
  '(org-todo-keywords (quote ((sequence "TODO" "DONE"))))
  '(read-mail-command (quote gnus))
  '(remember-data-file "~/remember.org")
+ '(safe-local-variable-values (quote ((cpp-make-target . "run-problem7") (cpp-make-target . "run-problem6") (cpp-make-target . "run-problem5") (cpp-make-target . "run-problem4") (cpp-make-target . "run-problem3") (cpp-make-target . "run-problem2") (cpp-make-target . "run-problem1") (cpp-make-target . "problem1") (cpp-make-target . problem1))))
  '(send-mail-function (quote smtpmail-send-it))
  '(sentence-end-double-space nil)
  '(smtpmail-debug-info t)
@@ -789,7 +793,7 @@ point"
  '(flyspell-incorrect ((t (:underline "red"))))
  '(font-lock-builtin-face ((((class color) (min-colors 88) (background dark)) (:foreground "lightsteelblue")) (((class color) (min-colors 88) (background light)) (:foreground "blue1"))))
  '(font-lock-comment-delimiter-face ((t (:foreground "#6b969a"))))
- '(font-lock-comment-face ((t (:foreground "#a0e0e6"))))
+ '(font-lock-comment-face ((t (:foreground "#a0e0e6" :weight bold))))
  '(font-lock-constant-face ((t (:foreground "#8db27b"))))
  '(font-lock-doc-face ((t (:foreground "#a0e0e6"))))
  '(font-lock-function-name-face ((t (:foreground "#adb1ec"))))
