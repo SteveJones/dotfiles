@@ -7,3 +7,6 @@
 
 [alias]
 	lt = log --graph --all --abbrev-commit --date=relative -10
+
+[color]
+	ui = auto
