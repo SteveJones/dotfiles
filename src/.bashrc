@@ -149,6 +149,7 @@ function ps1_path_update {
 _LAST_PWD="-"
 
 function ps1_update {
+    local ERROR=$?
     local PS1_PATH
     if [ "$_LAST_PWD" != "$PWD" ]; then
 	vc_root
@@ -176,7 +177,11 @@ function ps1_update {
 	PS1_HOST="$HOST_COLOUR\h"
     fi
 
-    PS1="$PS1_HOST$PS1_PATH$PS1_STATUS\[\033[00m\]\$ "
+    if [ "$ERROR" -eq 0 ]; then
+	PS1="$PS1_HOST$PS1_PATH$PS1_STATUS\[\033[00m\]\$ "
+    else
+	PS1="$PS1_HOST$PS1_PATH$PS1_STATUS\[\033[00;01;31m\]<$ERROR>\[\033[00m\]\$ "
+    fi
 }
 
 function s {
