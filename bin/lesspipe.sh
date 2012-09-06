@@ -12,15 +12,16 @@ if [ -d "$NAME" ]; then
 fi
 
 GEN_CASE=$(cat <<EOF
-/^*.*:/ {
-    match(\$0, "\\\\* ([^ ,:]+)", m);
-    LEX=m[1];
+/^\*.*:/ {
+    match(\$0, "\\\\* [^ ,:]+");
+    LEX = substr(\$0, RSTART + 2, RLENGTH - 2);
 }
 
 /filenames/ {
-    match(\$0, "filenames ([^)]+)", m);
-    gsub(", *", "|", m[1]);
-    printf "%s) pygmentize -O style=monokai -f terminal256 -l \\"%s\\" ;;\\n", m[1], LEX;
+    match(\$0, "filenames [^)]+");
+    PATTERN = substr(\$0, RSTART + 10, RLENGTH - 10)
+    gsub(", *", "|", PATTERN);
+    printf "%s) pygmentize -O style=monokai -f terminal256 -l \\"%s\\" 2> /dev/null ;;\\n", PATTERN, LEX;
 }
 EOF
 )
