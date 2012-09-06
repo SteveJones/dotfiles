@@ -50,6 +50,38 @@ if [ -n "$force_color_prompt" ]; then
     fi
 fi
 
+export MAX_COLOURS="$(tput colors)"
+
+function rgb_color {
+    local RED=$1
+    local GREEN=$2
+    local BLUE=$3
+
+    case $MAX_COLOURS in
+	256)
+	    RED=$(((RED * 5 + 50) / 100))
+	    GREEN=$(((GREEN * 5 + 50) / 100))
+	    BLUE=$(((BLUE * 5 + 50) / 100))
+	    COLOR=$((16 + (RED * 6 + GREEN) * 6 + BLUE))
+	    ;;
+	88)
+	    RED=$(((RED * 3 + 50) / 100))
+	    GREEN=$(((GREEN * 3 + 50) / 100))
+	    BLUE=$(((BLUE * 3 + 50) / 100))
+	    COLOR=$((16 + (RED * 4 + GREEN) * 4 + BLUE))
+	    ;;
+	default)
+	    # This function only works for 256 or 88 color mode
+	    return
+    esac
+
+    if [ "x$4" = "xbold" ]; then
+	echo '\[\033[01;38;5;'$((COLOR))'m\]'
+    else
+	echo '\[\033[00;38;5;'$((COLOR))'m\]'
+    fi
+}
+
 function up_till_file {
     if [ "$(pwd)" = "/" ]; then
 	return 1
@@ -127,10 +159,27 @@ function bzr_changed {
     fi
 }
 
+case $MAX_COLOURS in
+    256|88)
+	HOST_COLOUR="$(rgb_color 40 100 20)"
+	PATH_COLOUR="$(rgb_color 80 100 100)"
+	PATH_HI_COLOUR="$(rgb_color 40 100 100)"
+	PATH_SEP_COLOUR="$(rgb_color 100 80 80)"
+	STATUS_COLOUR="$(rgb_color 80 80 00)"
+	BRANCH_COLOUR="$(rgb_color 80 60 80)"
+	ERROR_COLOUR="$(rgb_color 100 20 00 bold)"
+	;;
+    *)
+	HOST_COLOUR="\[\033[00;32m\]"
+	PATH_COLOUR="\[\033[00;36m\]"
+	PATH_HI_COLOUR="\[\033[01;36m\]"
+	PATH_SEP_COLOUR="\[\033[00m\]"
+	STATUS_COLOUR="\[\033[00;33m\]"
+	BRANCH_COLOUR="\[\033[00;31m\]"
+	ERROR_COLOUR="\[\033[01;31m\]"
+esac
+
 function ps1_path_update {
-    local PATH_COLOUR="\[\033[00;36m\]"
-    local PATH_HI_COLOUR="\[\033[01;36m\]"
-    local PATH_SEP_COLOUR="\[\033[00m\]"
     if [ "x$VC_ROOT" = "x" ]; then
 	local P="${PWD/$HOME/~}"
 	P="${P//\//$PATH_SEP_COLOUR/$PATH_COLOUR}"
@@ -161,17 +210,14 @@ function ps1_update {
     fi
 
     local PS1_STATUS
-    local STATUS_COLOUR="\[\033[00;33m\]"
-    local BRANCH_COLOUR="\[\033[00:31m\]"
     if [ "$VC_TYPE" = "hg" ]; then
-	PS1_STATUS="$STATUS_COLOUR(${BRANCH_COLOUR}$(hg_branch)$STATUS_COLOUR:$(hg_changed))"
+	PS1_STATUS="$PATH_SEP_COLOUR(${BRANCH_COLOUR}$(hg_branch)$PATH_SEP_COLOUR:$STATUS_COLOUR$(hg_changed)$PATH_SEP_COLOUR)"
     elif [ "$VC_TYPE" = "git" ]; then
-	PS1_STATUS="$STATUS_COLOUR(${BRANCH_COLOUR}$(git_branch)$STATUS_COLOUR:$(git_changed))"
+	PS1_STATUS="$PATH_SEP_COLOUR(${BRANCH_COLOUR}$(git_branch)$PATH_SEP_COLOUR:$STATUS_COLOUR$(git_changed)$PATH_SEP_COLOUR)"
     elif [ "$VC_TYPE" = "bzr" ]; then
-	PS1_STATUS="$STATUS_COLOUR($(bzr_changed))"
+	PS1_STATUS="$PATH_SEP_COLOUR($(bzr_changed)$PATH_SEP_COLOUR)"
     fi
 
-    local HOST_COLOUR="\[\033[00;32m\]"
     local PS1_HOST=""
     if [ "x$SSH_CLIENT" != "x" ]; then
 	PS1_HOST="$HOST_COLOUR\h"
@@ -180,7 +226,7 @@ function ps1_update {
     if [ "$ERROR" -eq 0 ]; then
 	PS1="$PS1_HOST$PS1_PATH$PS1_STATUS\[\033[00m\]\$ "
     else
-	PS1="$PS1_HOST$PS1_PATH$PS1_STATUS\[\033[00;01;31m\]<$ERROR>\[\033[00m\]\$ "
+	PS1="$PS1_HOST$PS1_PATH$PS1_STATUS$ERROR_COLOUR<$ERROR>\[\033[00m\]\$ "
     fi
 }
 

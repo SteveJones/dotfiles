@@ -19,8 +19,8 @@ GEN_CASE=$(cat <<EOF
 
 /filenames/ {
     match(\$0, "filenames ([^)]+)", m);
-    gsub(", *", "|",m[1]);
-    printf "%s) pygmentize -f terminal256 -l \\"%s\\" ;;\\n", m[1], LEX;
+    gsub(", *", "|", m[1]);
+    printf "%s) pygmentize -O style=monokai -f terminal256 -l \\"%s\\" ;;\\n", m[1], LEX;
 }
 EOF
 )
@@ -48,6 +48,9 @@ bash <<EOF
 $CMD | case "$NAME" in
 rfc*.txt)
   tr '\f' '\n'
+  ;;
+.bashrc)
+  pygmentize -O style=monokai -f terminal256 -l bash
   ;;
 $CASE
 *)
