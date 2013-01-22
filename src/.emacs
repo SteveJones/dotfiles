@@ -23,6 +23,15 @@
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 (require 'org)
 		  
+(require 'package)
+(add-to-list 'package-archives
+	     '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(package-initialize)
+(unless package-archive-contents
+  (package-refresh-contents))
+
+
+
 (defun run-unit-tests ()
   (interactive)
   (let ((dir (pwd)))
@@ -140,6 +149,25 @@ This function makes sure that dates are aligned for easy reading."
     
     ))
 
+(defun prefixes (of-list)
+  (if of-list
+      (cons (list (car of-list))
+	    (mapcar
+	     (lambda (p) (cons (car of-list) p))
+	     (prefixes (cdr of-list))))))
+
+(defun scoped-symbol-at-point ()
+  (let* ((scope (split-string (which-function) "\\."))
+	(symbol (symbol-name (symbol-at-point)))) 
+    (if (not (symbol-at-point))
+	'()
+      (message symbol)
+      (cons symbol
+	    (mapcar
+	     (lambda (prefix)
+	       (mapconcat 'identity (append prefix (list symbol)) "."))
+	     (prefixes scope))))))
+
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
   "Will update the imenu index and then use ido to select a symbol to navigate to"
@@ -164,7 +192,11 @@ This function makes sure that dates are aligned for easy reading."
                                (add-to-list 'symbol-names name)
                                (add-to-list 'name-and-pos (cons name position))))))))
       (addsymbols imenu--index-alist)
-      (let* ((symbol-at-point (symbol-name (symbol-at-point)))
+      (let* ((scoped-symbols (remove-if
+			      (lambda (name) (not (member name symbol-names)))
+			      (scoped-symbol-at-point)))
+	     (symbol-at-point (if scoped-symbols
+				   (car scoped-symbols)))
 	     (selected-symbol (ido-completing-read
 			       "Symbol? "
 			       (if (member symbol-at-point symbol-names)
@@ -173,9 +205,14 @@ This function makes sure that dates are aligned for easy reading."
 						    symbol-names))
 				 symbol-names)))
 	     (pos (cdr (assoc selected-symbol name-and-pos))))
+	(push-mark)
 	(if (overlayp pos)
 	    (goto-char (overlay-start pos))
 	  (goto-char pos))))))
+
+(defun interactive-which-function ()
+  (interactive)
+  (message (which-function)))
 
 (global-set-key (kbd "C-S-s") 'ido-goto-symbol)
 
@@ -188,9 +225,10 @@ This function makes sure that dates are aligned for easy reading."
 (show-paren-mode 1)
 (setq inhibit-startup-screen t)
 
-(setq hippie-expand-try-functions-list '(try-expand-dabbrev-visible
-					 try-expand-dabbrev
+(setq hippie-expand-try-functions-list '(try-expand-dabbrev
 					 try-expand-dabbrev-all-buffers
+					 try-expand-line
+					 try-expand-line-all-buffers
 					 try-expand-dabbrev-from-kill))
 (global-set-key (kbd "M-/") 'hippie-expand)
 
@@ -398,6 +436,29 @@ point"
     (cd (concat base "hanzo-warc-browser"))
     (compile "python browse.fcgi 8080")))
 
+(defun python-project-looks-like-setup (filename)
+  (string-match "setup.py$" filename)
+  (let ((cwd (directory-file-name (pwd))))
+    (unwind-protect
+	(progn
+	  (cd (file-name-directory filename))
+	  (shell-command-to-string (concat "python " filename " --name")))
+      (cd cwd))))
+
+
+(defun python-project-is-base (dirname))
+  
+
+(defun python-project-locate-setup (dirname))
+  
+
+(defun python-project-init (filename)
+  (interactive)
+  (make-local-variable 'python-project-base)
+  (make-local-variable 'python-project-name)
+  (make-local-variable 'python-project-setup-py)
+  (python-project-locate-setup (file-name-directory filename)))
+
 (defun python-run-tests ()
   (interactive)
   (let ((base (locate-dominating-file buffer-file-name "setup.py")))
@@ -406,11 +467,12 @@ point"
       (cd base)
       (compile "python setup.py test"))))
 
+
 (defun maybe-access-run-hook ()
   (cond ((locate-dominating-file buffer-file-name "hanzo-warc-browser")
-	 (local-set-key (kbd "C-c C-c") 'access-run))
-	((locate-dominating-file buffer-file-name "setup.py")
-	 (local-set-key (kbd "C-c C-c") 'python-run-tests))))
+	 (local-set-key (kbd "C-c t") 'access-run))
+	((locate-dominating-file buffer-file-name 'looks-like-setup)
+	 (local-set-key (kbd "C-c t") 'python-run-tests))))
 
 (defun my-python-mode-hook ()
   (setq insert-tabs-mode '())
@@ -427,7 +489,7 @@ point"
 		 (delete-trailing-whitespace)))))
 
 (add-hook 'python-mode-hook 'my-python-mode-hook)
-(add-hook 'python-mode-hook 'maybe-access-run-hook)
+;;(add-hook 'python-mode-hook 'maybe-access-run-hook)
 
 (defun cperl-describe-symbol ()
   (interactive)
@@ -518,9 +580,20 @@ point"
       (add-to-list 'postgres-help-history query)
       (postgres-get-help query))))
 
+(defvar psql-database-name)
+(make-local-variable 'psql-database-name)
+
+(defun psql-set-database-name (name)
+  (interactive "MDatabase Name: ")
+  (setq psql-database-name name))
+
 (defun psql-run-file ()
   (interactive)
-  (compile (concat "psql miyamoto -P pager -f " buffer-file-name)))
+  (if psql-database-name
+      (compile (concat "psql '" psql-database-name "' -P pager -f " buffer-file-name))
+    (compile (concat "psql -P pager -f " buffer-file-name))))
+
+
 
 (defun psql-run-line ()
   (interactive)
@@ -707,7 +780,7 @@ point"
  '(dvc-tips-enabled nil)
  '(fill-column 78)
  '(flymake-log-level 0)
- '(global-ede-mode t)
+ '(global-ede-mode nil)
  '(gnus-ignored-newsgroups "")
  '(gnus-select-method (quote (nnimap "mail.secretvolcanobase.org")))
  '(gnus-summary-line-format "%U%R%z%>%(%[%-23,23f%]%) %s
@@ -755,6 +828,7 @@ point"
  :PROPERTIES:
  :created: %U
  :END:"))))
+ '(org-confirm-babel-evaluate nil)
  '(org-default-notes-file "~/org/notes.el")
  '(org-habit-show-habits-only-for-today nil)
  '(org-habit-today-glyph 84)
@@ -777,7 +851,8 @@ point"
  '(smtpmail-stream-type (quote starttls))
  '(user-mail-address "steve@secretvolcanobase.org")
  '(vc-delete-logbuf-window nil)
- '(w3m-search-engine-alist (quote (("yahoo" "http://search.yahoo.com/bin/search?p=%s" nil) ("yahoo-ja" "http://search.yahoo.co.jp/bin/search?p=%s" euc-japan) ("alc" "http://eow.alc.co.jp/%s/UTF-8/" utf-8) ("blog" "http://blogsearch.google.com/blogsearch?q=%s&oe=utf-8&ie=utf-8" utf-8) ("blog-en" "http://blogsearch.google.com/blogsearch?q=%s&hl=en&oe=utf-8&ie=utf-8" utf-8) ("google" "http://www.google.com/search?q=%s&ie=utf-8&oe=utf-8" utf-8) ("google-en" "http://www.google.com/search?q=%s&hl=en&ie=utf-8&oe=utf-8" utf-8) ("google news" "http://news.google.co.jp/news?hl=ja&ie=utf-8&q=%s&oe=utf-8" utf-8) ("google news-en" "http://news.google.com/news?hl=en&q=%s" nil) ("google groups" "http://groups.google.com/groups?q=%s" nil) ("All the Web" "http://www.alltheweb.com/search?web&_sb_lang=en&q=%s" nil) ("All the Web-ja" "http://www.alltheweb.com/search?web&_sb_lang=ja&cs=euc-jp&q=%s" euc-japan) ("technorati" "http://www.technorati.com/search/%s" utf-8) ("technorati-ja" "http://www.technorati.jp/search/search.html?query=%s&language=ja" utf-8) ("technorati-tag" "http://www.technorati.com/tag/%s" utf-8) ("goo-ja" "http://search.goo.ne.jp/web.jsp?MT=%s" euc-japan) ("excite-ja" "http://www.excite.co.jp/search.gw?target=combined&look=excite_jp&lang=jp&tsug=-1&csug=-1&search=%s" shift_jis) ("altavista" "http://altavista.com/sites/search/web?q=\"%s\"&kl=ja&search=Search" nil) ("rpmfind" "http://rpmfind.net/linux/rpm2html/search.php?query=%s" nil) ("debian-pkg" "http://packages.debian.org/cgi-bin/search_contents.pl?directories=yes&arch=i386&version=unstable&case=insensitive&word=%s" nil) ("debian-bts" "http://bugs.debian.org/cgi-bin/pkgreport.cgi?archive=yes&pkg=%s" nil) ("freebsd-users-jp" "http://home.jp.FreeBSD.org/cgi-bin/namazu.cgi?key=\"%s\"&whence=0&max=50&format=long&sort=score&dbname=FreeBSD-users-jp" euc-japan) ("iij-archie" "http://www.iij.ad.jp/cgi-bin/archieplexform?query=%s&type=Case+Insensitive+Substring+Match&order=host&server=archie1.iij.ad.jp&hits=95&nice=Nice" nil) ("waei" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=je" euc-japan) ("eiwa" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=ej" nil) ("kokugo" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=jn" euc-japan) ("eiei" "http://www.dictionary.com/cgi-bin/dict.pl?term=%s&r=67" nil) ("amazon" "http://www.amazon.com/exec/obidos/search-handle-form/250-7496892-7797857" iso-8859-1 "url=index=blended&field-keywords=%s") ("amazon-ja" "http://www.amazon.co.jp/gp/search?__mk_ja_JP=%%83J%%83%%5E%%83J%%83i&url=search-alias%%3Daps&field-keywords=%s" shift_jis) ("emacswiki" "http://www.emacswiki.org/cgi-bin/wiki?search=%s" nil) ("en.wikipedia" "http://en.wikipedia.org/wiki/Special:Search?search=%s" nil) ("de.wikipedia" "http://de.wikipedia.org/wiki/Spezial:Search?search=%s" utf-8) ("ja.wikipedia" "http://ja.wikipedia.org/wiki/Special:Search?search=%s" utf-8) ("msdn" "http://search.msdn.microsoft.com/search/default.aspx?query=%s" nil) ("freshmeat" "http://freshmeat.net/search/?q=%s&section=projects" nil) ("postgres" "http://www.postgresql.org/search/?u=%%2Fdocs%%2F9.1%%2F&q=%s" utf-8) ("python" "http://docs.python.org/search.html?q=%s&check_keywords=yes&area=default" utf-8)))))
+ '(w3m-search-engine-alist (quote (("yahoo" "http://search.yahoo.com/bin/search?p=%s" nil) ("yahoo-ja" "http://search.yahoo.co.jp/bin/search?p=%s" euc-japan) ("alc" "http://eow.alc.co.jp/%s/UTF-8/" utf-8) ("blog" "http://blogsearch.google.com/blogsearch?q=%s&oe=utf-8&ie=utf-8" utf-8) ("blog-en" "http://blogsearch.google.com/blogsearch?q=%s&hl=en&oe=utf-8&ie=utf-8" utf-8) ("google" "http://www.google.com/search?q=%s&ie=utf-8&oe=utf-8" utf-8) ("google-en" "http://www.google.com/search?q=%s&hl=en&ie=utf-8&oe=utf-8" utf-8) ("google news" "http://news.google.co.jp/news?hl=ja&ie=utf-8&q=%s&oe=utf-8" utf-8) ("google news-en" "http://news.google.com/news?hl=en&q=%s" nil) ("google groups" "http://groups.google.com/groups?q=%s" nil) ("All the Web" "http://www.alltheweb.com/search?web&_sb_lang=en&q=%s" nil) ("All the Web-ja" "http://www.alltheweb.com/search?web&_sb_lang=ja&cs=euc-jp&q=%s" euc-japan) ("technorati" "http://www.technorati.com/search/%s" utf-8) ("technorati-ja" "http://www.technorati.jp/search/search.html?query=%s&language=ja" utf-8) ("technorati-tag" "http://www.technorati.com/tag/%s" utf-8) ("goo-ja" "http://search.goo.ne.jp/web.jsp?MT=%s" euc-japan) ("excite-ja" "http://www.excite.co.jp/search.gw?target=combined&look=excite_jp&lang=jp&tsug=-1&csug=-1&search=%s" shift_jis) ("altavista" "http://altavista.com/sites/search/web?q=\"%s\"&kl=ja&search=Search" nil) ("rpmfind" "http://rpmfind.net/linux/rpm2html/search.php?query=%s" nil) ("debian-pkg" "http://packages.debian.org/cgi-bin/search_contents.pl?directories=yes&arch=i386&version=unstable&case=insensitive&word=%s" nil) ("debian-bts" "http://bugs.debian.org/cgi-bin/pkgreport.cgi?archive=yes&pkg=%s" nil) ("freebsd-users-jp" "http://home.jp.FreeBSD.org/cgi-bin/namazu.cgi?key=\"%s\"&whence=0&max=50&format=long&sort=score&dbname=FreeBSD-users-jp" euc-japan) ("iij-archie" "http://www.iij.ad.jp/cgi-bin/archieplexform?query=%s&type=Case+Insensitive+Substring+Match&order=host&server=archie1.iij.ad.jp&hits=95&nice=Nice" nil) ("waei" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=je" euc-japan) ("eiwa" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=ej" nil) ("kokugo" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=jn" euc-japan) ("eiei" "http://www.dictionary.com/cgi-bin/dict.pl?term=%s&r=67" nil) ("amazon" "http://www.amazon.com/exec/obidos/search-handle-form/250-7496892-7797857" iso-8859-1 "url=index=blended&field-keywords=%s") ("amazon-ja" "http://www.amazon.co.jp/gp/search?__mk_ja_JP=%%83J%%83%%5E%%83J%%83i&url=search-alias%%3Daps&field-keywords=%s" shift_jis) ("emacswiki" "http://www.emacswiki.org/cgi-bin/wiki?search=%s" nil) ("en.wikipedia" "http://en.wikipedia.org/wiki/Special:Search?search=%s" nil) ("de.wikipedia" "http://de.wikipedia.org/wiki/Spezial:Search?search=%s" utf-8) ("ja.wikipedia" "http://ja.wikipedia.org/wiki/Special:Search?search=%s" utf-8) ("msdn" "http://search.msdn.microsoft.com/search/default.aspx?query=%s" nil) ("freshmeat" "http://freshmeat.net/search/?q=%s&section=projects" nil) ("postgres" "http://www.postgresql.org/search/?u=%%2Fdocs%%2F9.1%%2F&q=%s" utf-8) ("python" "http://docs.python.org/search.html?q=%s&check_keywords=yes&area=default" utf-8))))
+ '(which-function-mode t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -804,6 +879,9 @@ point"
  '(gnus-header-content ((t (:foreground "indianred4"))))
  '(highlight ((t (:background "grey20"))))
  '(italic ((t (:slant italic))))
+ '(mode-line ((t (:background "grey25" :foreground "grey90"))))
+ '(mode-line-buffer-id ((t (:background "grey40" :weight bold))))
+ '(mode-line-inactive ((t (:background "grey10" :foreground "grey80" :weight light))))
  '(org-agenda-date ((t (:inherit org-agenda-structure :height 1.5))) t)
  '(org-agenda-date-today ((t (:inherit org-agenda-date :background "gray30" :slant italic :weight bold))) t)
  '(org-agenda-date-weekend ((t (:inherit org-agenda-date :foreground "grey20"))) t)
@@ -833,6 +911,7 @@ point"
  '(outline-4 ((t (:foreground "#6b969a" :weight bold))))
  '(outline-5 ((t (:foreground "#287d85" :weight bold))))
  '(outline-6 ((t (:foreground "#287d85" :weight bold))))
- '(outline-7 ((t (:foreground "#287d85" :weight bold)))))
+ '(outline-7 ((t (:foreground "#287d85" :weight bold))))
+ '(which-func ((t (:inherit font-lock-function-name-face)))))
 
 (put 'narrow-to-region 'disabled nil)
