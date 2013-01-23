@@ -168,6 +168,10 @@ This function makes sure that dates are aligned for easy reading."
 	       (mapconcat 'identity (append prefix (list symbol)) "."))
 	     (prefixes scope))))))
 
+(defun imia ()
+  (interactive)
+  (imenu--make-index-alist))
+
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
   "Will update the imenu index and then use ido to select a symbol to navigate to"
@@ -583,16 +587,18 @@ point"
 (defvar psql-database-name)
 (make-local-variable 'psql-database-name)
 
+(defun psql-confirm-database-name ()
+  (if (not (boundp 'psql-database-name))
+      (setq psql-database-name (read-from-minibuffer "Database Name: " (getenv "USER")))))
+
 (defun psql-set-database-name (name)
   (interactive "MDatabase Name: ")
   (setq psql-database-name name))
 
 (defun psql-run-file ()
   (interactive)
-  (if psql-database-name
-      (compile (concat "psql '" psql-database-name "' -P pager -f " buffer-file-name))
-    (compile (concat "psql -P pager -f " buffer-file-name))))
-
+  (psql-confirm-database-name)
+  (compile (concat "psql '" psql-database-name "' -P pager -f " buffer-file-name)))
 
 
 (defun psql-run-line ()
