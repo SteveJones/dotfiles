@@ -110,7 +110,6 @@ This function makes sure that dates are aligned for easy reading."
 (make-face 'tester-highlight-face)
 (set-face-background 'tester-highlight-face "thistle")
 
-(setq debug-on-error t)
 ;; TODO
 (defun tester-run-tests ()
   (interactive)
