@@ -142,10 +142,6 @@ This function makes sure that dates are aligned for easy reading."
 	    (goto-char (overlay-start pos))
 	  (goto-char pos))))))
 
-(defun interactive-which-function ()
-  (interactive)
-  (message (which-function)))
-
 (global-set-key (kbd "C-S-s") 'ido-goto-symbol)
 
 (if (boundp 'tool-bar-mode)
