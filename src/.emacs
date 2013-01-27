@@ -227,6 +227,8 @@ be made buffer local and set to the file type in load hooks.")
       (add-to-list 'ack-history query)
       (run-ack "all" query (project-root)))))
 
+(global-set-key (kbd "C-x C-a") 'ack)
+
 (defvar w3m-search-history nil)
 
 (defun w3m-search-at-point ()
