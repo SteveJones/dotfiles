@@ -79,49 +79,6 @@ This function makes sure that dates are aligned for easy reading."
 	    dayname day monthname year weekstring)))
 
 
-(setq tester-file-patterns
-  (list
-   (list "\\.py$"
-	 '("unit2" "discover" "-p" "*_tests.py")
-	 '(("^File" "^\\*\\{70\\}$")
-	   ("^File \"\\([^\"]+\\)\", line \\([[:digit:]]+\\)" '((1 . file) (2 . lineno)))
-	   ("^\\(Exception raised:\n\\(.\\|\n\\)*\\)\n\\*\\{70\\}$" '((1 . message)))))))
-
-(defvar tester-file-patterns
-  (list
-   (list "\\.py$"
-	 '("unit2" "discover" "-p" "*_tests.py")
-	 '(("^File" "^\\*\\{70\\}$")
-	   ("^File \"\\([^\"]+\\)\", line \\([[:digit:]]+\\)" '((1 . file) (2 . lineno)))
-	   ("^\\(Exception raised:\n\\(.\\|\n\\)*\\)\n\\*\\{70\\}$" '((1 . message)))))))
-
-(defun list-find (l pred)
-  (if l
-      (if (funcall pred (car l))
-	  (car l)
-	(list-find (cdr l) pred))
-    nil))
-  
-(defun tester-find-appropriate (filename)
-  (cdr (list-find tester-file-patterns
-		  (lambda (test)
-		    (string-match (car test) filename)))))
-
-(make-face 'tester-highlight-face)
-(set-face-background 'tester-highlight-face "thistle")
-
-;; TODO
-(defun tester-run-tests ()
-  (interactive)
-  (let* ((buffer (current-buffer))
-	 (test (tester-find-appropriate (buffer-file-name buffer)))
-	 (output (generate-new-buffer "*Tester*"))
-	 (run-process (append '(start-process "tester" output)
-			      (car test))))
-    (eval run-process)
-    
-    ))
-
 (defun prefixes (of-list)
   (if of-list
       (cons (list (car of-list))
