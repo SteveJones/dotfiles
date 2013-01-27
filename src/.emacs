@@ -3,15 +3,12 @@
 (require 'cl)
 (require 'epa-file)
 (epa-file-enable)
+
 (if (file-exists-p "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el")
     (load-file "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el"))
 
-(if (file-exists-p "~/code/confluence-el-read-only")
-    (progn
-      (add-to-list 'load-path "~/code/confluence-el-read-only")
-      (require 'confluence)))
-
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+
 (require 'org)
 		  
 (require 'package)
@@ -20,8 +17,6 @@
 (package-initialize)
 (unless package-archive-contents
   (package-refresh-contents))
-
-
 
 (defun run-unit-tests ()
   (interactive)
