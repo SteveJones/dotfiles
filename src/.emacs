@@ -1,15 +1,6 @@
 (require 'ido)
 (require 'imenu)
 (require 'cl)
-;(require 'tramp)
-(if (file-exists-p "~/code/emacsweblogs/lisp")
-    (progn
-      (add-to-list 'load-path "~/code/emacsweblogs/lisp")
-      (require 'xml-rpc)
-      (if (file-exists-p "~/code/jira-mode")
-	  (progn
-	    (add-to-list 'load-path "~/code/jira-mode")
-	    (require 'jira)))))
 (require 'epa-file)
 (epa-file-enable)
 (if (file-exists-p "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el")
@@ -54,11 +45,13 @@
 (setq org-mobile-inbox-for-pull "~/org/flagged")
 (setq org-mobile-directory "/mnt/hgfs/stephenjones/Dropbox/org")
 
+(require 'w3m-load)
+
 (setq browse-url-browser-function 'w3m-browse-url)
 (autoload 'w3m-browse-url "w3m" "Ask a WWW browser to show a URL." t)
 ;; optional keyboard short-cut
 (global-set-key "\C-xm" 'browse-url-at-point)
-(setq w3m-use-cookies 't)
+;;(setq w3m-use-cookies nil)
 
 (defun generate-file-template ()
   (let ((file-name (buffer-file-name))
