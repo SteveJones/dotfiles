@@ -100,10 +100,6 @@ This function makes sure that dates are aligned for easy reading."
 		     (mapconcat 'identity (append prefix (list symbol)) "."))
 		   (prefixes scope))))))))
 
-(defun imia ()
-  (interactive)
-  (imenu--make-index-alist))
-
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
   "Will update the imenu index and then use ido to select a symbol to navigate to"
