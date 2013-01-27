@@ -157,16 +157,18 @@ This function makes sure that dates are aligned for easy reading."
 	     (prefixes (cdr of-list))))))
 
 (defun scoped-symbol-at-point ()
-  (let* ((scope (split-string (which-function) "\\."))
-	(symbol (symbol-name (symbol-at-point)))) 
-    (if (not (symbol-at-point))
-	'()
-      (message symbol)
-      (cons symbol
-	    (mapcar
-	     (lambda (prefix)
-	       (mapconcat 'identity (append prefix (list symbol)) "."))
-	     (prefixes scope))))))
+  (let ((func (which-function)))
+    (if func
+	(let* ((scope (split-string func "\\."))
+	       (symbol (symbol-name (symbol-at-point)))) 
+	  (if (not (symbol-at-point))
+	      '()
+	    (message symbol)
+	    (cons symbol
+		  (mapcar
+		   (lambda (prefix)
+		     (mapconcat 'identity (append prefix (list symbol)) "."))
+		   (prefixes scope))))))))
 
 (defun imia ()
   (interactive)
@@ -681,20 +683,20 @@ point"
 
 (add-hook 'sql-mode-hook 'my-sql-mode-hook)
 
-(global-set-key (kbd "C-' A") "∀")
-(global-set-key (kbd "C-' E") "∃")
-(global-set-key (kbd "C-' a") "∧")
-(global-set-key (kbd "C-' o") "∨")
-(global-set-key (kbd "C-' U") "∪")
-(global-set-key (kbd "C-' I") "∩")
-(global-set-key (kbd "C-' d") "⋅")
-(global-set-key (kbd "C-' c") "∘")
-(global-set-key (kbd "C-' x") "×")
-(global-set-key (kbd "C-' r") "→")
-(global-set-key (kbd "C-' l") "←")
-(global-set-key (kbd "C-' R") "⇢")
-(global-set-key (kbd "C-' L") "⇠")
-(global-set-key (kbd "C-' u") "μ")
+(global-set-key (kbd "C-x 8 A") "∀")
+(global-set-key (kbd "C-x 8 E") "∃")
+(global-set-key (kbd "C-x 8 a") "∧")
+(global-set-key (kbd "C-x 8 o") "∨")
+(global-set-key (kbd "C-x 8 U") "∪")
+(global-set-key (kbd "C-x 8 I") "∩")
+(global-set-key (kbd "C-x 8 d") "⋅")
+(global-set-key (kbd "C-x 8 c") "∘")
+(global-set-key (kbd "C-x 8 x") "×")
+(global-set-key (kbd "C-x 8 r") "→")
+(global-set-key (kbd "C-x 8 l") "←")
+(global-set-key (kbd "C-x 8 R") "⇢")
+(global-set-key (kbd "C-x 8 L") "⇠")
+(global-set-key (kbd "C-x 8 u") "μ")
 
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(boost-test-failure "^\\([^(]+\\)(\\([[:digit:]]+\\)):\\s-+fatal\\s-+error"))
@@ -871,7 +873,7 @@ point"
  '(flymake-errline ((((class color) (min-colors 88) (background dark)) (:underline "red")) (((class color) (background light)) (:underline "red"))))
  '(flymake-warnline ((t (:underline "steelblue1" :slant italic))))
  '(flyspell-duplicate ((t (:underline "gold4"))))
- '(flyspell-incorrect ((t (:underline "red"))))
+ '(flyspell-incorrect ((t (:underline "darkred"))))
  '(font-lock-builtin-face ((((class color) (min-colors 88) (background dark)) (:foreground "lightsteelblue")) (((class color) (min-colors 88) (background light)) (:foreground "blue1"))))
  '(font-lock-comment-delimiter-face ((t (:foreground "#6b969a"))))
  '(font-lock-comment-face ((t (:foreground "#a0e0e6" :weight bold))))
