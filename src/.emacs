@@ -780,7 +780,6 @@ point"
  '(max-mini-window-height 2)
  '(mm-text-html-renderer (quote w3m))
  '(mm-verify-option (quote always))
- '(org-agenda-custom-commands (quote (("h" "Agenda + household TODOs" ((agenda "" nil) (tags-todo "@home|garden|bill" nil)) nil) ("T" "In Town" ((agenda "" ((org-agenda-span (quote day)))) (tags-todo "@town|shopping" nil)) nil))))
  '(org-agenda-deadline-faces (quote ((1.0 . org-warning) (0.5 . org-upcoming-deadline) (0.0 . default))))
  '(org-agenda-diary-file "~/org/diary.org")
  '(org-agenda-files (quote ("~/org/notes.org" "~/org/personal.org" "~/org/hanzo.org" "~/org/diary.org" "~/org/shopping.org")))
