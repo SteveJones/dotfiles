@@ -505,10 +505,8 @@ point"
 
 (defun postgres-help ()
   (interactive)
-  (let ((query (get-symbol-prompt "Postgres docs")))
-    (unless (string= query "")
-      (add-to-list 'postgres-help-history query)
-      (postgres-get-help query))))
+  (let ((query (get-symbol-prompt "Postgres docs" 'postgres-help-history)))
+    (postgres-get-help query)))
 
 (defvar psql-database-name)
 (make-local-variable 'psql-database-name)
@@ -597,9 +595,10 @@ point"
 
 (defun my-sql-mode-hook ()
   (local-set-key (kbd "C-c f") 'postgres-help)
-  (local-set-key (kbd "C-c C-b") 'psql-run-file)
-  (local-set-key (kbd "C-c C-l") 'psql-run-line)
-  (local-set-key (kbd "C-c C-i") 'psql-get-indexes)
+  (local-set-key (kbd "C-c C-p") 'sql-postgres)
+  (local-set-key (kbd "C-c C-c") 'sql-send-buffer)
+  (local-set-key (kbd "C-c C-r") 'sql-send-region)
+  (local-set-key (kbd "C-c C-s") 'sql-send-string)
   (setq ack-type "sql")
   (make-local-variable 'w3m-search-default-engine)
   (setq w3m-search-default-engine "postgres")
