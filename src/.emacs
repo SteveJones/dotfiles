@@ -18,16 +18,6 @@
 (unless package-archive-contents
   (package-refresh-contents))
 
-(defun run-unit-tests ()
-  (interactive)
-  (let ((dir (pwd)))
-    (unwind-protect
-	(progn
-	  (cd "/home/stephenjones/code/miyamoto/")
-	  (compile "DISPLAY=:6 unit2 discover -p '*_test.py' tests"))
-      (cd dir))))
-
-
 (setq tramp-default-method "scpc")
 
 (global-set-key (kbd "C-c a") 'org-agenda)
@@ -36,9 +26,6 @@
 (org-clock-persistence-insinuate)
 
 (global-set-key (kbd "C-x O") 'previous-multiframe-window)
-
-(setq org-mobile-inbox-for-pull "~/org/flagged")
-(setq org-mobile-directory "/mnt/hgfs/stephenjones/Dropbox/org")
 
 (require 'w3m-load)
 
@@ -828,7 +815,8 @@ point"
  '(org-default-notes-file "~/org/notes.el")
  '(org-habit-show-habits-only-for-today nil)
  '(org-habit-today-glyph 84)
- '(org-mobile-inbox-for-pull "~/org/from-mobile.org" t)
+ '(org-mobile-directory "/svb:org-mobile")
+ '(org-mobile-inbox-for-pull "~/org/from-mobile.org")
  '(org-modules (quote (org-bbdb org-bibtex org-docview org-gnus org-info org-jsinfo org-habit org-irc org-mew org-mhe org-protocol org-rmail org-vm org-wl org-w3m)))
  '(org-refile-targets (quote ((org-agenda-files :maxlevel . 10))))
  '(org-src-fontify-natively t)
