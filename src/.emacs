@@ -603,6 +603,26 @@ point"
       (backward-sexp)
       (search-backward-regexp start-re))))
 
+(defun comint-shell-click-url (&rest args)
+  (interactive)
+  (browse-url-at-point))
+
+(defun comint-shell-hilight-url (string)
+  (let ((start comint-last-output-start)
+	(end (process-mark (get-buffer-process (current-buffer)))))
+    (save-excursion
+      (goto-char start)
+      (while (search-forward-regexp "https?://\\(\\w+\\.\\)*\\w+\\(/\\w+\\)*/?" end 't)
+	(message (buffer-substring (match-beginning 0) (match-end 0)))
+	(add-text-properties 
+	 (match-beginning 0) (match-end 0)
+	 (let ((map (make-sparse-keymap)))
+	   (define-key map [mouse-1] 'comint-shell-click-url)
+	   (list 'font-lock-face 'link
+		 'mouse-face 'highlight
+		 'keymap map)))))))
+
+(add-to-list 'comint-output-filter-functions 'comint-shell-hilight-url)
 
 (defun postgres-indent ()
   (interactive)
