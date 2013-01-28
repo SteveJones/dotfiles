@@ -748,6 +748,7 @@ point"
  '(fill-column 78)
  '(flymake-log-level 0)
  '(global-ede-mode nil)
+ '(global-hl-line-mode t)
  '(gnus-ignored-newsgroups "")
  '(gnus-select-method (quote (nnimap "mail.secretvolcanobase.org")))
  '(gnus-summary-line-format "%U%R%z%>%(%[%-23,23f%]%) %s
