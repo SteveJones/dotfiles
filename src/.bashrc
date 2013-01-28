@@ -28,29 +28,36 @@ if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
 
-# set a fancy prompt (non-color, unless we know we "want" color)
-case "$TERM" in
-    screen-bce) color_prompt=yes;;
-    xterm-color) color_prompt=yes;;
-esac
-
-# uncomment for a colored prompt, if the terminal has the capability; turned
-# off by default to not distract the user: the focus in a terminal window
-# should be on the output of commands, not on the prompt
-#force_color_prompt=yes
-
-if [ -n "$force_color_prompt" ]; then
-    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
-    else
-	color_prompt=
-    fi
+# Check for broken term
+if ! tput longname > /dev/null; then
+    case "$TERM" in
+	rxvt-unicode-256color)
+	    if tput -Trxvt-256color longname > /dev/null; then
+		export TERM=rxvt-256color
+	    elif tput -Trxvt-unicode longname > /dev/null; then
+		export TERM=rxvt-unicode
+	    elif tput -Trxvt longname > /dev/null; then
+		export TERM=rxvt
+	    else
+		# Where in the hell are you?
+		export TERM=vt100
+		export TERM_BROKEN=1
+	    fi
+	    ;;
+	*)
+	    export TERM_BROKEN=1
+    esac
 fi
 
-export MAX_COLOURS="$(tput colors)"
+if [ -z "$TERM_BROKEN" ]; then
+    export MAX_COLOURS="$(tput colors)"
+else
+    if [ -z "$INSIDE_EMACS" ]; then
+	export MAX_COLOURS=2
+    else
+	export MAX_COLOURS=8
+    fi
+fi
 
 function rgb_color {
     local RED=$1
@@ -70,8 +77,14 @@ function rgb_color {
 	    BLUE=$(((BLUE * 3 + 50) / 100))
 	    COLOR=$((16 + (RED * 4 + GREEN) * 4 + BLUE))
 	    ;;
+	8|16)
+	    RED=$(((RED + 50) / 100))
+	    GREEN=$(((GREEN + 50) / 100))
+	    BLUE=$(((BLUE + 50) / 100))
+	    COLOR=$(((BLUE * 2 + GREEN) * 2 + RED))
+	    ;;
 	default)
-	    # This function only works for 256 or 88 color mode
+	    # This function only works for color mode
 	    return
     esac
 
@@ -160,7 +173,7 @@ function bzr_changed {
 }
 
 case $MAX_COLOURS in
-    256|88)
+    256|88|16|8)
 	HOST_COLOUR="$(rgb_color 40 100 20)"
 	PATH_COLOUR="$(rgb_color 80 100 100)"
 	PATH_HI_COLOUR="$(rgb_color 40 100 100)"
