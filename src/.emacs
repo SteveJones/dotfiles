@@ -366,6 +366,12 @@ point"
     (cd (concat base "hanzo-warc-browser"))
     (compile "python browse.fcgi 8080")))
 
+(defun python-doctest ()
+  (interactive)
+  (python-shell-send-buffer)
+  (python-shell-send-string "import doctest")
+  (python-shell-send-string "doctest.testmod()"))
+
 (defun python-project-looks-like-setup (filename)
   (string-match "setup.py$" filename)
   (let ((cwd (directory-file-name (pwd))))
@@ -410,6 +416,7 @@ point"
   (hs-minor-mode)
   (flyspell-prog-mode)
   (local-set-key (kbd "C-c f") 'python-describe-symbol)
+  (local-set-key (kbd "C-c C-d") 'python-doctest)
   (setq ack-type "python")
   (make-local-variable 'w3m-search-default-engine)
   (setq w3m-search-default-engine "python")
