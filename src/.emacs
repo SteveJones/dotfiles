@@ -266,7 +266,7 @@ point"
 
 (when (load "flymake" t)
   ;; Python
-  (setq flymake-log-level 2)
+  (setq flymake-log-level 3)
 
   (defun flymake-create-temp-intemp (file-name prefix)
     "Return file name in temporary directory for checking
@@ -281,17 +281,19 @@ point"
      \(like here) will not if the file you are checking depends
      on relative paths to other files \(for the type of checks
      flymake makes)."
+
     (unless (stringp file-name)
       (error "Invalid file-name"))
+
     (or prefix
 	(setq prefix "flymake"))
+
     (let* ((name (concat
 		  (file-name-nondirectory
 		   (file-name-sans-extension file-name))
-		  "_" prefix))
+		  "_" prefix)) 
 	   (ext  (concat "." (file-name-extension file-name)))
-	   (temp-name (make-temp-file name nil ext))
-	   )
+	   (temp-name (make-temp-file name nil ext)))
       (flymake-log 3 "create-temp-intemp: file=%s temp=%s" file-name temp-name)
       temp-name))
 
@@ -420,14 +422,16 @@ point"
 	   (mapconcat 'identity (cons path parts) ":"))))))
 
 (defun any-prefix-p (string &rest prefixes)
-  (if (string-prefix-p (car prefixes) string)
-      't
-    (apply 'any-prefix-p string (cdr prefixes))))
+  (if prefixes
+      (if (string-prefix-p (car prefixes) string)
+	  't
+	(apply 'any-prefix-p string (cdr prefixes)))))
 
 (defun python-miyamoto-project-hook ()
-  (if (any-prefix-p (buffer-file-name)
+  (if (and (buffer-file-name)
+	   (any-prefix-p (buffer-file-name)
 		     "/home/stephenjones/code/kagami"
-		     "/home/stephenjones/code/miyamoto")
+		     "/home/stephenjones/code/miyamoto"))
       (add-to-pythonpath "/home/stephenjones/code/miyamoto")))
 
 (add-hook 'python-mode-hook 'python-miyamoto-project-hook)
