@@ -410,6 +410,28 @@ point"
 	((locate-dominating-file buffer-file-name 'looks-like-setup)
 	 (local-set-key (kbd "C-c t") 'python-run-tests))))
 
+(defun add-to-pythonpath (path)
+  (if (not (getenv "PYTHONPATH"))
+      (setenv "PYTHONPATH" path)
+    (let ((parts (split-string (getenv "PYTHONPATH") ":")))
+      (if (not (member path parts))
+	  (setenv
+	   "PYTHONPATH"
+	   (mapconcat 'identity (cons path parts) ":"))))))
+
+(defun any-prefix-p (string &rest prefixes)
+  (if (string-prefix-p (car prefixes) string)
+      't
+    (apply 'any-prefix-p string (cdr prefixes))))
+
+(defun python-miyamoto-project-hook ()
+  (if (any-prefix-p (buffer-file-name)
+		     "/home/stephenjones/code/kagami"
+		     "/home/stephenjones/code/miyamoto")
+      (add-to-pythonpath "/home/stephenjones/code/miyamoto")))
+
+(add-hook 'python-mode-hook 'python-miyamoto-project-hook)
+
 (defun my-python-mode-hook ()
   (setq insert-tabs-mode '())
   (flymake-mode)
