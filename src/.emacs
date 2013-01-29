@@ -652,12 +652,51 @@ point"
 
 (require 'sql)
 
+(defun sql-buffer-get-product (buf)
+  (and (sql-buffer-live-p buf)
+       (with-current-buffer buf
+	 sql-product)))
+
+(defun sql-buffer-get-connection (buf)
+  (and (sql-buffer-live-p buf)
+       (with-current-buffer buf
+	 sql-connection)))
+
+(defun sql-get-buffers (&optional product connection)
+  (filter (lambda (buffer)
+	    (sql-buffer-live-p buffer product connection))
+	  (buffer-list)))
+
+(defvar sql-read-connection-history nil)
+
+(defun sql-read-connection (prompt &optional initial default)
+  "Read a connection name."
+  (let ((connection-name (ido-completing-read
+			  "Connection name: "
+			  (mapcar (lambda (con) (car con)) sql-connection-alist)
+			  nil 't initial
+			  'sql-read-connection-history
+			  default)))
+    (add-to-list 'sql-read-connection-history connection-name)
+    connection-name))
+
+(defun sql-set-sqli-buffer ()
+  (interactive)
+  (let* ((buffers (sql-get-buffers))
+	 (buffer (ido-completing-read
+		  "Select buffer: "
+		  (mapcar (lambda (buffer)
+			    (buffer-name buffer)) buffers) nil 't)))
+    (setq sql-buffer buffer)
+    (run-hooks 'sql-set-sqli-hook)))
+
 (defun my-sql-mode-hook ()
   (local-set-key (kbd "C-c f") 'postgres-help)
   (local-set-key (kbd "C-c C-p") 'sql-connect)
   (local-set-key (kbd "C-c C-c") 'sql-send-buffer)
   (local-set-key (kbd "C-c C-r") 'sql-send-region)
   (local-set-key (kbd "C-c C-s") 'sql-send-string)
+  (local-set-key (kbd "C-c C-b") 'sql-set-sqli-buffer)
   (sql-set-product 'postgres)
   (setq ack-type "sql")
   (make-local-variable 'w3m-search-default-engine)
@@ -844,6 +883,7 @@ point"
  '(smtpmail-smtp-user "zombywuf")
  '(smtpmail-stream-type (quote starttls))
  '(sql-connection-alist (quote (("miyamoto" (sql-product (quote postgres)) (sql-user "stephenjones") (sql-server "") (sql-database "miyamoto")) ("stephenjones" (sql-product (quote postgres)) (sql-user "stephenjones") (sql-database "stephenjones") (sql-server "")) ("kagami" (sql-product (quote postgres)) (sql-user "stephenjones") (sql-database "kagami") (sql-server "")))))
+ '(sql-pop-to-buffer-after-send-region t)
  '(user-mail-address "steve@secretvolcanobase.org")
  '(vc-delete-logbuf-window nil)
  '(w3m-key-binding (quote info))
