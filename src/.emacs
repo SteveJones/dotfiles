@@ -752,6 +752,14 @@ point"
     (message command)
     (sql-send-string command)))
 
+(defun sql-defun-goto-line (line)
+  (interactive "P")
+  (if (not line)
+      (setq line (read-number "Line: ")))
+  (sql-beginning-of-defun)
+  (backward-char 1)
+  (forward-line line))
+
 (defun my-sql-mode-hook ()
   (local-set-key (kbd "C-c f") 'postgres-help)
   (local-set-key (kbd "C-c C-p") 'sql-connect)
@@ -762,6 +770,7 @@ point"
   (local-set-key (kbd "C-c C-d") 'sql-send-defun)
   (local-set-key (kbd "C-c d") 'sql-define-token)
   (local-set-key (kbd "C-c C-b") 'sql-set-sqli-buffer)
+  (local-set-key (kbd "M-g d") 'sql-defun-goto-line)
   (make-local-variable 'beginning-of-defun-function)
   (make-local-variable 'end-of-defun-function)
   (setq beginning-of-defun-function 'sql-beginning-of-defun
@@ -770,7 +779,7 @@ point"
   (setq ack-type "sql")
   (make-local-variable 'w3m-search-default-engine)
   (setq w3m-search-default-engine "postgres")
-  (flyspell-prog-mode))	
+  (flyspell-prog-mode))
 
 (add-hook 'sql-mode-hook 'my-sql-mode-hook)
 
