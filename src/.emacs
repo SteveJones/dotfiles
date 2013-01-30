@@ -264,6 +264,26 @@ point"
 
 (add-hook 'emacs-lisp-mode-hook 'my-emacs-lisp-mode-hook)
 
+(defun shell-apt-complete ()
+  (interactive)
+  (let* ((beg (overlay-end comint-last-prompt-overlay))
+	 (end (point))
+	 (input (buffer-substring beg end)))
+    (if (string-match "^\\s-*\\(sudo\\s-+\\)?apt-get\\s-+install\\(\\s-+-\\S+\\)*\\(\\s-+\\([^-]\\S-*\\)\\)*$" input)
+	(if (match-string 4 input)
+	    (list
+	     (+ beg (match-beginning 4))
+	     end
+	     (with-temp-buffer
+	       (shell-command
+		(concat "apt-cache search --names-only '^" (match-string 4 input) "'")
+		(current-buffer))
+	       (goto-char (point-min))
+	       (let ((packages nil))
+		 (while (search-forward-regexp "^\\(\\S-+\\) -" nil 't)
+		   (add-to-list 'packages (match-string 1)))
+		 packages)))))))
+
 (when (load "flymake" t)
   ;; Python
   (setq flymake-log-level 3)
@@ -960,6 +980,7 @@ point"
  '(safe-local-variable-values (quote ((cpp-make-target . "run-problem7") (cpp-make-target . "run-problem6") (cpp-make-target . "run-problem5") (cpp-make-target . "run-problem4") (cpp-make-target . "run-problem3") (cpp-make-target . "run-problem2") (cpp-make-target . "run-problem1") (cpp-make-target . "problem1") (cpp-make-target . problem1))))
  '(send-mail-function (quote smtpmail-send-it))
  '(sentence-end-double-space nil)
+ '(shell-dynamic-complete-functions (quote (comint-c-a-p-replace-by-expanded-history shell-environment-variable-completion shell-command-completion shell-c-a-p-replace-by-expanded-directory pcomplete-completions-at-point shell-filename-completion comint-filename-completion shell-apt-complete)))
  '(smtpmail-debug-info t)
  '(smtpmail-local-domain nil)
  '(smtpmail-smtp-server "mail.secretvolcanobase.org")
