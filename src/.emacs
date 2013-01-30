@@ -456,13 +456,45 @@ point"
 
 (add-hook 'python-mode-hook 'python-miyamoto-project-hook)
 
+(defun python-shell-send-paragraph ()
+  (interactive)
+  (save-excursion
+    (mark-paragraph)
+    (python-shell-send-region (point) (mark))))
+
+(defun python-shell-display-buffer ()
+  (interactive)
+  (display-buffer (process-buffer (python-shell-get-process))))
+
+(defun python-shell-send-defun-and-display (arg)
+  (interactive "P")
+  (let ((res (python-shell-send-defun arg)))
+    (python-shell-display-buffer)
+    res))
+
+(defun python-shell-send-paragraph-and-display ()
+  (interactive)
+  (let ((res (python-shell-send-paragraph)))
+    (python-shell-display-buffer)
+    res))
+
+(defun pyhon-shell-send-buffer-and-display (&optional arg)
+  (interactive "P")
+  (let ((res (python-shell-send-buffer arg)))
+    (python-shell-display-buffer)
+    res))
+
 (defun my-python-mode-hook ()
   (setq insert-tabs-mode '())
   (flymake-mode)
   (hs-minor-mode)
   (flyspell-prog-mode)
   (local-set-key (kbd "C-c f") 'python-describe-symbol)
+  (local-set-key (kbd "C-c C-d") 'python-shell-send-defun-and-display)
+  (local-set-key (kbd "C-c C-l") 'python-shell-send-buffer-and-display)
+  (local-set-key (kbd "C-c C-c") 'python-shell-send-paragraph-and-display)
   (local-set-key (kbd "C-c C-d") 'python-doctest)
+  (local-set-key (kbd "M-g i") 'python-shell-switch-to-shell)
   (setq ack-type "python")
   (make-local-variable 'w3m-search-default-engine)
   (setq w3m-search-default-engine "python")
@@ -780,6 +812,11 @@ point"
   (backward-char 1)
   (forward-line line))
 
+(defun sql-switch-to-interactive ()
+  (interactive)
+  (if (sql-buffer-live-p sql-buffer)
+      (pop-to-buffer sql-buffer)))
+
 (defun my-sql-mode-hook ()
   (local-set-key (kbd "C-c f") 'postgres-help)
   (local-set-key (kbd "C-c C-p") 'sql-connect)
@@ -791,6 +828,7 @@ point"
   (local-set-key (kbd "C-c d") 'sql-define-token)
   (local-set-key (kbd "C-c C-b") 'sql-set-sqli-buffer)
   (local-set-key (kbd "M-g d") 'sql-defun-goto-line)
+  (local-set-key (kbd "M-g i") 'sql-switch-to-interactive)
   (make-local-variable 'beginning-of-defun-function)
   (make-local-variable 'end-of-defun-function)
   (setq beginning-of-defun-function 'sql-beginning-of-defun
