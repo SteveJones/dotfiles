@@ -195,8 +195,22 @@ be made buffer local and set to the file type in load hooks.")
 
 (make-variable-buffer-local 'ack-type)
 
+(defun bash-safe (string)
+  (string-match "^[[:alnum:]-/]+$" string))
+
+(defun bash-escape-string (string)
+  (if (bash-safe string)
+      string
+    (concat "'" (replace-regexp-in-string "'" "'\\\\''" string) "'")))
+
+(defun bash-make-command (command &rest args)
+  (mapconcat 'bash-escape-string (cons command args) " "))
+
 (defun run-ack (type query directory)
-  (compilation-start (concat "ack-grep -i -H --nogroup --color --column --" type " '" query "' '" directory "'") 'grep-mode))
+  (compilation-start
+   (bash-make-command
+    "ack-grep" "-i" "-H" "--nogroup" "--color" "--column"
+    (concat "--" type) query directory) 'grep-mode))
 
 (defvar ack-history nil)
 
@@ -478,7 +492,7 @@ point"
     (python-shell-display-buffer)
     res))
 
-(defun pyhon-shell-send-buffer-and-display (&optional arg)
+(defun python-shell-send-buffer-and-display (&optional arg)
   (interactive "P")
   (let ((res (python-shell-send-buffer arg)))
     (python-shell-display-buffer)
@@ -535,6 +549,38 @@ point"
   > "BOOST_AUTO_TEST_CASE(" str ") {" \n
   > _ \n
   "}" \n)
+
+(defun cpp-header-template ()
+  (interactive)
+  (let* ((base-path (concat (expand-file-name (locate-dominating-file (buffer-file-name) "include")) "include/"))
+	 (file-path (buffer-file-name))
+	 (file-name (substring file-path
+			       (length base-path)
+			       (- (length file-path) (length (file-name-extension file-path)) 1)))
+	 (def-name (concat "__" (replace-regexp-in-string "[\\.[:space:]/-]" "_" file-name)))
+	 (ns-name (split-string (replace-regexp-in-string "[\\.[:space:]-]" "_" file-name) "/")))
+    (let (start-pos end-pos)
+      (save-excursion
+	(beginning-of-buffer)
+	(insert "#ifndef " def-name "\n")
+	(insert "#define " def-name "\n\n")
+	(mapcar (lambda (name)
+		  (insert "namespace " name " {")
+		  (indent-according-to-mode)
+		  (insert "\n")) ns-name)
+	(insert "\n")
+	(indent-according-to-mode)
+	(setq start-pos (point))
+	(end-of-buffer)
+	(insert "\n")
+	(setq end-pos (point))
+	(mapcar (lambda (name)
+		  (insert "\n}")
+		  (indent-according-to-mode)) ns-name)
+	(insert "\n\n#endif\n"))
+      (if (or (< (point) start-pos)
+	      (> (point) end-pos))
+	  (goto-char start-pos)))))
 
 (defvar cpp-make-target "test")
 (make-variable-buffer-local 'cpp-make-target)
@@ -800,7 +846,7 @@ point"
 
 (defun sql-define-token ()
   (interactive)
-  (let ((command (concat "\n\\d " (symbol-name (symbol-at-point)) "\n")))
+  (let ((command (concat "\n\\d " (symbol-name (symbol-at-point)) ";")))
     (message command)
     (sql-send-string command)))
 
@@ -842,7 +888,7 @@ point"
 (add-hook 'sql-mode-hook 'my-sql-mode-hook)
 
 (defun psql-hook ()
-  (setq sql-prompt-regexp "^\\(\\S-+:\\)?\\w+@\\S-+/\\S-# "
+  (setq sql-prompt-regexp "^\\(\\S-+:\\)?\\S-+@\\S-+/\\S-+# "
 	sql-prompt-cont-regexp "^\\S-+[(\\$-]# "))
 
 (add-hook 'sql-interactive-mode-hook 'psql-hook)
