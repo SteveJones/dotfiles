@@ -1,6 +1,5 @@
 (require 'ido)
 (require 'imenu)
-(require 'cl)
 (require 'epa-file)
 (epa-file-enable)
 
@@ -34,14 +33,21 @@
 (global-set-key "\C-xm" 'browse-url-at-point)
 (setq w3m-use-cookies 't)
 
+(defun filter (p l)
+  (if (not l)
+      ()
+    (if (funcall p (car l))
+	(cons (car l) (filter p (cdr l)))
+      (filter p (cdr l)))))
+
 (defun generate-file-template ()
   (let ((file-name (buffer-file-name))
 	(line-number (line-number-at-pos)))
     (concat "* " file-name ":" (int-to-string line-number) " %T")))
 
 (defun de-camel ()
-  """CamelCaseIsEvilAndMustBeDestroyed"""
   (interactive)
+  """CamelCaseIsEvilAndMustBeDestroyed"""
   (while (looking-at "\\w")
     (let ((case-fold-search nil)
 	  (c (char-after)))
@@ -100,47 +106,43 @@ This function makes sure that dates are aligned for easy reading."
 		     (mapconcat 'identity (append prefix (list symbol)) "."))
 		   (prefixes scope))))))))
 
+(defun imenu-index-alist-flatten (alist)
+  (cond ((not alist)
+	 nil)
+	((imenu--subalist-p (car alist))
+	 (append (imenu-index-alist-flatten (cdr (car alist)))
+		 (imenu-index-alist-flatten (cdr alist))))
+	((listp (car alist))
+	 (cons (car alist)
+	       (imenu-index-alist-flatten (cdr alist))))
+	((stringp (car alist))
+	 (cons (cons symbol (get-text-property 1 'org-imenu-marker symbol))
+	       (imenu-index-alist-flatten (cdr alist))))))
+
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
 (defun ido-goto-symbol ()
   "Will update the imenu index and then use ido to select a symbol to navigate to"
   (interactive)
   (imenu--make-index-alist)
-  (let ((name-and-pos '())
-        (symbol-names '()))
-    (flet ((addsymbols (symbol-list)
-		       (when (listp symbol-list)
-                         (dolist (symbol symbol-list)
-                           (let ((name nil) (position nil))
-                             (cond
-                              ((and (listp symbol) (imenu--subalist-p symbol))
-                               (addsymbols symbol))
-                              ((listp symbol)
-                               (setq name (car symbol))
-                               (setq position (cdr symbol)))
-                              ((stringp symbol)
-                               (setq name symbol)
-                               (setq position (get-text-property 1 'org-imenu-marker symbol))))
-                             (unless (or (null position) (null name))
-                               (add-to-list 'symbol-names name)
-                               (add-to-list 'name-and-pos (cons name position))))))))
-      (addsymbols imenu--index-alist)
-      (let* ((scoped-symbols (remove-if
-			      (lambda (name) (not (member name symbol-names)))
-			      (scoped-symbol-at-point)))
-	     (symbol-at-point (if scoped-symbols
-				   (car scoped-symbols)))
-	     (selected-symbol (ido-completing-read
-			       "Symbol? "
-			       (if (member symbol-at-point symbol-names)
-				   (cons symbol-at-point
-					 (remove-if (lambda (x) (string-equal x symbol-at-point))
-						    symbol-names))
-				 symbol-names)))
-	     (pos (cdr (assoc selected-symbol name-and-pos))))
-	(push-mark)
-	(if (overlayp pos)
-	    (goto-char (overlay-start pos))
-	  (goto-char pos))))))
+  (let* ((name-and-pos (imenu-index-alist-flatten imenu--index-alist))
+	 (symbol-names (mapcar (lambda (x) (car x)) name-and-pos))
+	 (scoped-symbols (filter
+			  (lambda (name) (member name symbol-names))
+			  (scoped-symbol-at-point)))
+	 (symbol-at-point (if scoped-symbols
+			      (car scoped-symbols)))
+	 (selected-symbol (ido-completing-read
+			   "Symbol? "
+			   (if (member symbol-at-point symbol-names)
+			       (cons symbol-at-point
+				     (filter (lambda (x) (not (string-equal x symbol-at-point)))
+					     symbol-names))
+			     symbol-names)))
+	 (pos (cdr (assoc selected-symbol name-and-pos))))
+    (push-mark)
+    (if (overlayp pos)
+	(goto-char (overlay-start pos))
+      (goto-char pos))))
 
 (global-set-key (kbd "C-S-s") 'ido-goto-symbol)
 
@@ -499,7 +501,6 @@ point"
     res))
 
 (defun my-python-mode-hook ()
-  (setq insert-tabs-mode '())
   (flymake-mode)
   (hs-minor-mode)
   (flyspell-prog-mode)
@@ -512,9 +513,9 @@ point"
   (setq ack-type "python")
   (make-local-variable 'w3m-search-default-engine)
   (setq w3m-search-default-engine "python")
+  (which-function-mode)
   (make-local-variable 'which-function)
   (setq which-function 'python-info-current-defun)
-  (which-function-mode)
   (add-hook 'local-write-file-hooks
 	    '(lambda()
 	       (save-excursion
@@ -993,22 +994,11 @@ point"
 ;(setq compilation-error-regexp-alist-alist (assq-delete-all 'psql-error compilation-error-regexp-alist-alist))
 ;(setq compilation-error-regexp-alist-alist (assq-delete-all 'psql-info compilation-error-regexp-alist-alist))
 
-(defun filter (p l)
-  (if (not l)
-      ()
-    (if (funcall p (car l))
-	(cons (car l) (filter p (cdr l)))
-      (filter p (cdr l)))))
-
 (defmacro remove-from-list (l p)
   (set 'l (filter p l)))
 
-;(setq foo '(1 2 3 4))
-;(remove-from-list foo (lambda (x) (> x 2)))
-;foo
-
 (defun careq (a b)
-  (equalp (car a) (car b)))
+  (equal (car a) (car b)))
 
 (add-to-list 'compilation-error-regexp-alist-alist
 	     '(psql-notice "^psql:\\([^:]+\\):\\([[:digit:]]+\\):\\s-+\\(NOTICE\\):\\s-+\\(.*\\)" 1 2 nil 0 4)
