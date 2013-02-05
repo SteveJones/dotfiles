@@ -8,8 +8,6 @@
 
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
 
-(require 'org)
-		  
 (require 'package)
 (add-to-list 'package-archives
 	     '("melpa" . "http://melpa.milkbox.net/packages/") t)
@@ -116,7 +114,7 @@ This function makes sure that dates are aligned for easy reading."
 	 (cons (car alist)
 	       (imenu-index-alist-flatten (cdr alist))))
 	((stringp (car alist))
-	 (cons (cons symbol (get-text-property 1 'org-imenu-marker symbol))
+	 (cons (cons (car alist) (get-text-property 1 'org-imenu-marker (car alist)))
 	       (imenu-index-alist-flatten (cdr alist))))))
 
 ;; Lifted from http://nflath.com/2009/09/emacs-fixes/
@@ -234,14 +232,6 @@ be made buffer local and set to the file type in load hooks.")
   (let ((query (get-symbol-prompt "Ack" 'ack-history)))
     (unless (string= query "")
       (run-ack ack-type query (project-root)))))
-
-(defun ack-all ()
-  (interactive)
-  (let ((query (ack-get-query "Ack all")))
-    (if (string= query "")
-	()
-      (add-to-list 'ack-history query)
-      (run-ack "all" query (project-root)))))
 
 (global-set-key (kbd "C-x C-a") 'ack)
 
@@ -565,22 +555,22 @@ point"
 	 (ns-name (split-string (replace-regexp-in-string "[\\.[:space:]-]" "_" file-name) "/")))
     (let (start-pos end-pos)
       (save-excursion
-	(beginning-of-buffer)
+	(goto-char (point-min))
 	(insert "#ifndef " def-name "\n")
 	(insert "#define " def-name "\n\n")
-	(mapcar (lambda (name)
-		  (insert "namespace " name " {")
-		  (indent-according-to-mode)
-		  (insert "\n")) ns-name)
+	(mapc (lambda (name)
+		(insert "namespace " name " {")
+		(indent-according-to-mode)
+		(insert "\n")) ns-name)
 	(insert "\n")
 	(indent-according-to-mode)
 	(setq start-pos (point))
-	(end-of-buffer)
+	(goto-char (point-max))
 	(insert "\n")
 	(setq end-pos (point))
-	(mapcar (lambda (name)
-		  (insert "\n}")
-		  (indent-according-to-mode)) ns-name)
+	(mapc (lambda (name)
+		(insert "\n}")
+		(indent-according-to-mode)) ns-name)
 	(insert "\n\n#endif\n"))
       (if (or (< (point) start-pos)
 	      (> (point) end-pos))
@@ -725,24 +715,6 @@ point"
 		 'keymap map)))))))
 
 (add-to-list 'comint-output-filter-functions 'comint-shell-hilight-url)
-
-(defun postgres-indent ()
-  (interactive)
-  (let ((interesting-re (regexp-opt postgres-block-interesting))
-	(block-indent 0))
-    (save-excursion
-      (if (eq (line-number-at-pos) 1)
-	  (setq block-indent 0)
-	(beginning-of-line)
-	(if (looking-at interesting-re)
-	    (progn
-	      (previous-line)
-	      (setq block-indent 
-	  
-	(while (not (looking-at interesting-re))
-	  (previous-line))
-	(setq block-indent (current-indentation))))
-    (indent))))))
 
 (defun current-error ()
   (interactive)
