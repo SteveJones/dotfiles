@@ -1,7 +1,5 @@
 (require 'ido)
 (require 'imenu)
-(require 'epa-file)
-(epa-file-enable)
 
 (if (file-exists-p "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el")
     (load-file "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el"))
@@ -23,8 +21,6 @@
 (org-clock-persistence-insinuate)
 
 (global-set-key (kbd "C-x O") 'previous-multiframe-window)
-
-(require 'w3m-load)
 
 (setq browse-url-browser-function 'w3m-browse-url)
 (autoload 'w3m-browse-url "w3m" "Ask a WWW browser to show a URL." t)
@@ -290,6 +286,13 @@ point"
 		   (add-to-list 'packages (match-string 1)))
 		 packages)))))))
 
+(defun shell-hippie-expand-hook ()
+  (make-local-variable 'hippie-expand-try-functions-list)
+  (add-to-list 'hippie-expand-try-functions-list 'try-complete-file-name)
+  (add-to-list 'hippie-expand-try-functions-list 'try-complete-file-name-partially))
+
+(add-hook 'shell-mode-hook 'shell-hippie-expand-hook)
+
 (when (load "flymake" t)
   ;; Python
   (setq flymake-log-level 3)
@@ -552,7 +555,9 @@ point"
 			       (length base-path)
 			       (- (length file-path) (length (file-name-extension file-path)) 1)))
 	 (def-name (concat "__" (replace-regexp-in-string "[\\.[:space:]/-]" "_" file-name)))
-	 (ns-name (split-string (replace-regexp-in-string "[\\.[:space:]-]" "_" file-name) "/")))
+	 (q-name (split-string (replace-regexp-in-string "[\\.[:space:]-]" "_" file-name) "/"))
+	 (ns-name (butlast q-name))
+	 (class-name (car (last q-name))))
     (let (start-pos end-pos)
       (save-excursion
 	(goto-char (point-min))
@@ -564,9 +569,14 @@ point"
 		(insert "\n")) ns-name)
 	(insert "\n")
 	(indent-according-to-mode)
+	(insert "class " class-name " {\n")
+	(indent-according-to-mode)
 	(setq start-pos (point))
 	(goto-char (point-max))
+	(insert "\n}")
+	(indent-according-to-mode)
 	(insert "\n")
+	(indent-according-to-mode)
 	(setq end-pos (point))
 	(mapc (lambda (name)
 		(insert "\n}")
@@ -705,7 +715,6 @@ point"
     (save-excursion
       (goto-char start)
       (while (search-forward-regexp "https?://\\(\\w+\\.\\)*\\w+\\(/\\w+\\)*/?" end 't)
-	(message (buffer-substring (match-beginning 0) (match-end 0)))
 	(add-text-properties 
 	 (match-beginning 0) (match-end 0)
 	 (let ((map (make-sparse-keymap)))
@@ -839,7 +848,12 @@ point"
   (if (sql-buffer-live-p sql-buffer)
       (pop-to-buffer sql-buffer)))
 
+(defun string-font-lock ()
+  (interactive)
+  (add-to-list 'font-lock-keywords (cons "\\$[^\\$]*\\$" font-lock-string-face)))
+
 (defun my-sql-mode-hook ()
+  (string-font-lock)
   (local-set-key (kbd "C-c f") 'postgres-help)
   (local-set-key (kbd "C-c C-p") 'sql-connect)
   (local-set-key (kbd "C-c C-c") 'sql-send-paragraph)
@@ -876,7 +890,7 @@ point"
 (global-set-key (kbd "C-x 8 U") "∪")
 (global-set-key (kbd "C-x 8 I") "∩")
 (global-set-key (kbd "C-x 8 d") "⋅")
-(global-set-key (kbd "C-x 8 c") "∘")
+(global-set-key (kbd "C-x 8 D") "∘")
 (global-set-key (kbd "C-x 8 x") "×")
 (global-set-key (kbd "C-x 8 r") "→")
 (global-set-key (kbd "C-x 8 l") "←")
@@ -885,6 +899,7 @@ point"
 (global-set-key (kbd "C-x 8 h") "⊦")
 (global-set-key (kbd "C-x 8 n") "⊨")
 (global-set-key (kbd "C-x 8 e") "∈")
+(global-set-key (kbd "C-x 8 i <") "≤")
 
 (defun bind-greek (key letter)
   (global-set-key (kbd (concat "C-x 8 g " (downcase key))) 
@@ -1089,7 +1104,8 @@ point"
  '(vc-delete-logbuf-window nil)
  '(w3m-key-binding (quote info))
  '(w3m-search-engine-alist (quote (("yahoo" "http://search.yahoo.com/bin/search?p=%s" nil) ("yahoo-ja" "http://search.yahoo.co.jp/bin/search?p=%s" euc-japan) ("alc" "http://eow.alc.co.jp/%s/UTF-8/" utf-8) ("blog" "http://blogsearch.google.com/blogsearch?q=%s&oe=utf-8&ie=utf-8" utf-8) ("blog-en" "http://blogsearch.google.com/blogsearch?q=%s&hl=en&oe=utf-8&ie=utf-8" utf-8) ("google" "http://www.google.co.uk/search?q=%s&ie=utf-8&oe=utf-8" utf-8) ("google-en" "http://www.google.com/search?q=%s&hl=en&ie=utf-8&oe=utf-8" utf-8) ("google news" "http://news.google.co.jp/news?hl=ja&ie=utf-8&q=%s&oe=utf-8" utf-8) ("google news-en" "http://news.google.com/news?hl=en&q=%s" nil) ("google groups" "http://groups.google.com/groups?q=%s" nil) ("All the Web" "http://www.alltheweb.com/search?web&_sb_lang=en&q=%s" nil) ("All the Web-ja" "http://www.alltheweb.com/search?web&_sb_lang=ja&cs=euc-jp&q=%s" euc-japan) ("technorati" "http://www.technorati.com/search/%s" utf-8) ("technorati-ja" "http://www.technorati.jp/search/search.html?query=%s&language=ja" utf-8) ("technorati-tag" "http://www.technorati.com/tag/%s" utf-8) ("goo-ja" "http://search.goo.ne.jp/web.jsp?MT=%s" euc-japan) ("excite-ja" "http://www.excite.co.jp/search.gw?target=combined&look=excite_jp&lang=jp&tsug=-1&csug=-1&search=%s" shift_jis) ("altavista" "http://altavista.com/sites/search/web?q=\"%s\"&kl=ja&search=Search" nil) ("rpmfind" "http://rpmfind.net/linux/rpm2html/search.php?query=%s" nil) ("debian-pkg" "http://packages.debian.org/cgi-bin/search_contents.pl?directories=yes&arch=i386&version=unstable&case=insensitive&word=%s" nil) ("debian-bts" "http://bugs.debian.org/cgi-bin/pkgreport.cgi?archive=yes&pkg=%s" nil) ("freebsd-users-jp" "http://home.jp.FreeBSD.org/cgi-bin/namazu.cgi?key=\"%s\"&whence=0&max=50&format=long&sort=score&dbname=FreeBSD-users-jp" euc-japan) ("iij-archie" "http://www.iij.ad.jp/cgi-bin/archieplexform?query=%s&type=Case+Insensitive+Substring+Match&order=host&server=archie1.iij.ad.jp&hits=95&nice=Nice" nil) ("waei" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=je" euc-japan) ("eiwa" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=ej" nil) ("kokugo" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=jn" euc-japan) ("eiei" "http://www.dictionary.com/cgi-bin/dict.pl?term=%s&r=67" nil) ("amazon" "http://www.amazon.com/exec/obidos/search-handle-form/250-7496892-7797857" iso-8859-1 "url=index=blended&field-keywords=%s") ("amazon-ja" "http://www.amazon.co.jp/gp/search?__mk_ja_JP=%%83J%%83%%5E%%83J%%83i&url=search-alias%%3Daps&field-keywords=%s" shift_jis) ("emacswiki" "http://www.google.co.uk/cse?cx=004774160799092323420%%3A6-ff2s0o6yi&q=%s" nil) ("en.wikipedia" "http://en.wikipedia.org/wiki/Special:Search?search=%s" nil) ("de.wikipedia" "http://de.wikipedia.org/wiki/Spezial:Search?search=%s" utf-8) ("ja.wikipedia" "http://ja.wikipedia.org/wiki/Special:Search?search=%s" utf-8) ("msdn" "http://search.msdn.microsoft.com/search/default.aspx?query=%s" nil) ("freshmeat" "http://freshmeat.net/search/?q=%s&section=projects" nil) ("postgres" "http://www.postgresql.org/search/?u=%%2Fdocs%%2F9.1%%2F&q=%s" utf-8) ("python" "http://docs.python.org/search.html?q=%s&check_keywords=yes&area=default" utf-8))))
- '(which-function-mode t))
+ '(which-function-mode t)
+ '(whitespace-style (quote (face trailing lines-tail space-before-tab empty space-after-tab tab-mark))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -1150,6 +1166,7 @@ point"
  '(outline-5 ((t (:foreground "#287d85" :weight bold))))
  '(outline-6 ((t (:foreground "#287d85" :weight bold))))
  '(outline-7 ((t (:foreground "#287d85" :weight bold))))
- '(which-func ((t (:inherit font-lock-function-name-face)))))
+ '(which-func ((t (:inherit font-lock-function-name-face))))
+ '(whitespace-line ((t (:background "red")))))
 
 (put 'narrow-to-region 'disabled nil)
