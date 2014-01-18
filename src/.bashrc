@@ -312,13 +312,15 @@ if [ -f /etc/bash_completion ] && ! shopt -oq posix && [ -z "$INSIDE_EMACS" ]; t
     . /etc/bash_completion
 fi
 
-export PYTHONPATH=~/code/miyamoto:~/code/hanzo-warc-tools
-export PYTHONSTARTUP=~/.pythonrc.py
-
-export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
-
-export LESSOPEN="| $HOME/bin/lesspipe.sh %s"
-export LESS="-RFNJ"
-export MANPAGER="less -sn" # disable line numbers in man, they're meaningless and mess up the formatting
-
 bind '"\e/":dabbrev-expand'
+
+PATH=$PATH:$HOME/.rvm/bin # Add RVM to PATH for scripting
+
+if [ -f "${HOME}/.gpg-agent-info" ]; then
+    . "${HOME}/.gpg-agent-info"
+    export GPG_AGENT_INFO
+    export SSH_AUTH_SOCK
+fi
+
+GPG_TTY=$(tty)
+export GPG_TTY
