@@ -5,6 +5,12 @@
     (load-file "/usr/local/share/emacs/site-lisp/dvc/dvc-load.el"))
 
 (add-to-list 'load-path "/usr/local/share/emacs/site-lisp")
+(server-start)
+
+(add-to-list 'load-path (concat (getenv "HOME") "/.emacs.d/elisp"))
+(load "python-custom")
+(load "web-custom")
+(load "sql-custom")
 
 (require 'package)
 (add-to-list 'package-archives
@@ -21,11 +27,6 @@
 (org-clock-persistence-insinuate)
 
 (global-set-key (kbd "C-x O") 'previous-multiframe-window)
-
-(setq browse-url-browser-function 'w3m-browse-url)
-(autoload 'w3m-browse-url "w3m" "Ask a WWW browser to show a URL." t)
-(global-set-key "\C-xm" 'browse-url-at-point)
-(setq w3m-use-cookies 't)
 
 (defun filter (p l)
   (if (not l)
@@ -204,9 +205,13 @@ be made buffer local and set to the file type in load hooks.")
 
 (defun run-ack (type query directory)
   (compilation-start
-   (bash-make-command
-    "ack-grep" "-i" "-H" "--nogroup" "--color" "--column"
-    (concat "--" type) query directory) 'grep-mode))
+   (concat
+    (bash-make-command
+     "cd" directory)
+    ";"
+    (bash-make-command
+     "ack-grep" "-i" "-H" "--nogroup" "--color" "--column"
+     (concat "--" type) query)) 'grep-mode))
 
 (defvar ack-history nil)
 
@@ -230,29 +235,6 @@ be made buffer local and set to the file type in load hooks.")
       (run-ack ack-type query (project-root)))))
 
 (global-set-key (kbd "C-x C-a") 'ack)
-
-(defvar w3m-search-history nil)
-
-(defun w3m-search-at-point ()
-  "Do a web search with a default query of the symbol at the
-point"
-  (interactive)
-  (w3m-search
-   w3m-search-default-engine
-   (get-symbol-prompt
-    (concat "Search " w3m-search-default-engine)
-    'w3m-search-history)))
-
-(defun w3m-google-at-point ()
-  "Do a google search with a default query of the symbol at the point."
-  (interactive)
-  (w3m-search
-   "google"
-   (get-symbol-prompt "Search Google" 'w3m-search-history)))
-  
-
-(global-set-key (kbd "C-c g") 'w3m-search-at-point)
-(global-set-key (kbd "C-c C-g") 'w3m-google-at-point)
 
 (defun my-emacs-lisp-mode-hook ()
   (flyspell-prog-mode)
@@ -327,17 +309,26 @@ point"
       temp-name))
 
   (defun flymake-pylint-init ()
-    (let* ((temp-file (flymake-init-create-temp-buffer-copy
-		       'flymake-create-temp-intemp))
-	   (local-dir (file-name-directory buffer-file-name))
-           (local-file (file-relative-name
-                        temp-file
-                        local-dir)))
+    (let ((temp-file (flymake-init-create-temp-buffer-copy 'flymake-create-temp-intemp))
+	  (root (project-root))
+	  (local-dir (file-name-directory buffer-file-name))
+	  (python-path (getenv "PYTHONPATH")))
+
+      (if (not python-path)
+	  (setq python-path root)
+	(let ((path (split-string python-path ":")))
+	  (if (not (member root path))
+	      (setq python-path (mapconcat 'identity (cons root path) ":")))))
       
-      (list "epylint" (list local-file) local-dir)))
-  
+      (list "epylint.sh" (list temp-file) local-dir)))
+
   (add-to-list 'flymake-allowed-file-name-masks
                '("\\.py\\'" flymake-pylint-init))
+
+  
+  (add-to-list 'flymake-err-line-patterns
+	       '("^\\([^:]+\\):\\([^:]+\\): \\(.*\\)" 1 2 nil 3))
+
   ;; Perl
   (defun flymake-perl-init ()
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
@@ -356,6 +347,7 @@ point"
   (add-to-list 'flymake-err-line-patterns
 	       '("\\(.*\\) at \\([^ \n]+\\) line \\([0-9]+\\)[,.\n]" 2 3 nil 1))
 
+  ;; D
   (defun flymake-d-init ()
     (let* ((temp-file (flymake-init-create-temp-buffer-copy
 		       'flymake-create-temp-inplace))
@@ -371,7 +363,10 @@ point"
 		 flymake-get-real-file-name))
 
   (add-to-list 'flymake-err-line-patterns
-	       '("\\(.*\\)(\\([0-9]+\\)): \\(.*\\)" 1 2 nil 3)))
+	       '("\\(.*\\)(\\([0-9]+\\)): \\(.*\\)" 1 2 nil 3))
+  ;; CPP
+  (add-to-list 'flymake-allowed-file-name-masks
+	       '(".+\\.hpp$" flymake-simple-make-init)))
 
 (defun first-succ (list func)
   (or (funcall func (car list))
@@ -389,133 +384,7 @@ point"
 (global-set-key (kbd "C->") 'flymake-goto-next-error)
 (global-set-key (kbd "C-<") 'flymake-goto-prev-error)
 
-(defun access-run ()
-  (interactive)
-  (let ((base (locate-dominating-file buffer-file-name "hanzo-warc-browser")))
-    (if (not base)
-	(error "Attempt to run access outside of access directory"))
-    (cd (concat base "hanzo-warc-browser"))
-    (compile "python browse.fcgi 8080")))
-
-(defun python-doctest ()
-  (interactive)
-  (python-shell-send-buffer)
-  (python-shell-send-string "import doctest")
-  (python-shell-send-string "doctest.testmod()"))
-
-(defun python-project-looks-like-setup (filename)
-  (string-match "setup.py$" filename)
-  (let ((cwd (directory-file-name (pwd))))
-    (unwind-protect
-	(progn
-	  (cd (file-name-directory filename))
-	  (shell-command-to-string (concat "python " filename " --name")))
-      (cd cwd))))
-
-
-(defun python-project-is-base (dirname))
-  
-
-(defun python-project-locate-setup (dirname))
-  
-
-(defun python-project-init (filename)
-  (interactive)
-  (make-local-variable 'python-project-base)
-  (make-local-variable 'python-project-name)
-  (make-local-variable 'python-project-setup-py)
-  (python-project-locate-setup (file-name-directory filename)))
-
-(defun python-run-tests ()
-  (interactive)
-  (let ((base (locate-dominating-file buffer-file-name "setup.py")))
-    (if (not base)
-	(error "Cannot find setup.py")
-      (cd base)
-      (compile "python setup.py test"))))
-
-
-(defun maybe-access-run-hook ()
-  (cond ((locate-dominating-file buffer-file-name "hanzo-warc-browser")
-	 (local-set-key (kbd "C-c t") 'access-run))
-	((locate-dominating-file buffer-file-name 'looks-like-setup)
-	 (local-set-key (kbd "C-c t") 'python-run-tests))))
-
-(defun add-to-pythonpath (path)
-  (if (not (getenv "PYTHONPATH"))
-      (setenv "PYTHONPATH" path)
-    (let ((parts (split-string (getenv "PYTHONPATH") ":")))
-      (if (not (member path parts))
-	  (setenv
-	   "PYTHONPATH"
-	   (mapconcat 'identity (cons path parts) ":"))))))
-
-(defun any-prefix-p (string &rest prefixes)
-  (if prefixes
-      (if (string-prefix-p (car prefixes) string)
-	  't
-	(apply 'any-prefix-p string (cdr prefixes)))))
-
-(defun python-miyamoto-project-hook ()
-  (if (and (buffer-file-name)
-	   (any-prefix-p (buffer-file-name)
-		     "/home/stephenjones/code/kagami"
-		     "/home/stephenjones/code/miyamoto"))
-      (add-to-pythonpath "/home/stephenjones/code/miyamoto")))
-
-(add-hook 'python-mode-hook 'python-miyamoto-project-hook)
-
-(defun python-shell-send-paragraph ()
-  (interactive)
-  (save-excursion
-    (mark-paragraph)
-    (python-shell-send-region (point) (mark))))
-
-(defun python-shell-display-buffer ()
-  (interactive)
-  (display-buffer (process-buffer (python-shell-get-process))))
-
-(defun python-shell-send-defun-and-display (arg)
-  (interactive "P")
-  (let ((res (python-shell-send-defun arg)))
-    (python-shell-display-buffer)
-    res))
-
-(defun python-shell-send-paragraph-and-display ()
-  (interactive)
-  (let ((res (python-shell-send-paragraph)))
-    (python-shell-display-buffer)
-    res))
-
-(defun python-shell-send-buffer-and-display (&optional arg)
-  (interactive "P")
-  (let ((res (python-shell-send-buffer arg)))
-    (python-shell-display-buffer)
-    res))
-
-(defun my-python-mode-hook ()
-  (flymake-mode)
-  (hs-minor-mode)
-  (flyspell-prog-mode)
-  (local-set-key (kbd "C-c f") 'python-describe-symbol)
-  (local-set-key (kbd "C-c C-d") 'python-shell-send-defun-and-display)
-  (local-set-key (kbd "C-c C-l") 'python-shell-send-buffer-and-display)
-  (local-set-key (kbd "C-c C-c") 'python-shell-send-paragraph-and-display)
-  (local-set-key (kbd "C-c C-d") 'python-doctest)
-  (local-set-key (kbd "M-g i") 'python-shell-switch-to-shell)
-  (setq ack-type "python")
-  (make-local-variable 'w3m-search-default-engine)
-  (setq w3m-search-default-engine "python")
-  (which-function-mode)
-  (make-local-variable 'which-function)
-  (setq which-function 'python-info-current-defun)
-  (add-hook 'local-write-file-hooks
-	    '(lambda()
-	       (save-excursion
-		 (delete-trailing-whitespace)))))
-
-(add-hook 'python-mode-hook 'my-python-mode-hook)
-;;(add-hook 'python-mode-hook 'maybe-access-run-hook)
+(modify-frame-parameters nil '((alpha 80)))
 
 (defun cperl-describe-symbol ()
   (interactive)
@@ -592,10 +461,20 @@ point"
 (defun cpp-run-tests ()
   (interactive)
   (let ((make-path (expand-file-name (locate-dominating-file (buffer-file-name) "Makefile"))))
-    (message make-path)
     (if (not make-path)
 	(error "Couldn't locate makefile"))
-    (compile (concat "cd " make-path " && make " cpp-make-target))))
+    (compile (concat (bash-make-command "cd" make-path)
+		     " && "
+		     (bash-make-command "make" cpp-make-target)))))
+
+(defun make ()
+  (interactive)
+  (let ((make-path (expand-file-name (locate-dominating-file (buffer-file-name) "Makefile"))))
+    (if (not make-path)
+	(error "Couldn't locate makefile"))
+    (compile (concat (bash-make-command "cd" make-path)
+		     " && "
+		     (bash-make-command "make" "-k")))))
 
 
 (defun my-c++-mode-hook ()
@@ -603,94 +482,20 @@ point"
   (hs-minor-mode)
   (local-set-key (kbd "C-c f") 'manual-entry)
   (local-set-key (kbd "C-c C-t") 'cpp-boost-test-case)
-  (local-set-key (kbd "C-c C-m") 'compile)
+  (local-set-key (kbd "C-c C-m") 'make)
   (local-set-key (kbd "C-c C-c") 'cpp-run-tests)
   (setq ack-type "cpp"))
 
 (add-hook 'c++-mode-hook 'my-c++-mode-hook)
 
-(defun url-safe-p (c)
-  "True if the character is safe to use in a url without encoding."
-  (and (and (> c 32) (< c 128))
-       (not (member c '(?: ?/ ?? ?# ?[ ?] ?@ ?! ?$ ?& ?' ?( ?) ?* ?+ ?, ?\; ?=)))))
+(defun my-make-mode-hook ()
+  (local-set-key (kbd "C-c C-m") 'make))
 
-(defun url-encode-char (c)
-  "Url encodes a single character, returns a string."
-  (cond ((= ?  c) "+")
-	((url-safe-p c) (char-to-string c))
-	('t (format "%%%02x" c))))
+(add-hook 'makefile-mode-hook 'my-make-mode-hook)
 
-(defun url-encode (string)
-  "Returns the url encoded value of its argument."
-  (mapconcat 'url-encode-char (encode-coding-string string 'utf-8) ""))
-
-(defun postgres-w3m-find-results (url)
-  (if (string-prefix-p "http://www.postgresql.org/search/" url)
-      (search-forward "1. ")))
-
-(defun google-w3m-find-results (url)
-  (if (string-match "^http://www.google.[^/]+/\\(search\\|cse\\)" url)
-      (search-forward "1. ")))
-
-(add-hook 'w3m-display-hook 'postgres-w3m-find-results)
-(add-hook 'w3m-display-hook 'google-w3m-find-results)
-
-(defun postgres-get-help (symbol)
-  (w3m (concat
-	"http://www.postgresql.org/search/?u=%2Fdocs%2F9.1%2F&q="
-	(url-encode symbol))))
-
-(defvar postgres-help-history nil)
-
-(defun postgres-help ()
-  (interactive)
-  (let ((query (get-symbol-prompt "Postgres docs" 'postgres-help-history)))
-    (postgres-get-help query)))
-
-(defvar psql-database-name)
-(make-local-variable 'psql-database-name)
-
-(defun psql-confirm-database-name ()
-  (if (not (boundp 'psql-database-name))
-      (setq psql-database-name (read-from-minibuffer "Database Name: " (getenv "USER")))))
-
-(defun psql-set-database-name (name)
-  (interactive "MDatabase Name: ")
-  (setq psql-database-name name))
-
-(defun psql-run-file ()
-  (interactive)
-  (psql-confirm-database-name)
-  (compile (concat "psql '" psql-database-name "' -P pager -f " buffer-file-name)))
-
-
-(defun psql-run-line ()
-  (interactive)
-  (let* ((beg (save-excursion
-	       (beginning-of-line)
-	       (point)))
-	(end (save-excursion
-	       (end-of-line)
-	       (point)))
-	(line (buffer-substring-no-properties beg end)))
-    (shell-command (concat
-		    "psql miyamoto -c '"
-		    (replace-regexp-in-string "'" "'\\''" line)
-		    "'"))))
 
 (defun sql-string-escape (input)
   (replace-regexp-in-string "'" "''" input))
-
-(defun psql-get-indexes ()
-  (interactive)
-  (let* ((table-name (symbol-name (symbol-at-point)))
-	 (sql-command (concat "select indexname, indexdef from pg_indexes where tablename ='"
-			      (sql-string-escape (downcase table-name))
-			      "'")))
-    (shell-command (concat
-		    "psql miyamoto -c "
-		    (shell-quote-argument sql-command))
-		   (concat "*" table-name " indexes*"))))
 
 (defvar postgres-block-starters '("select"))
 (defvar postgres-block-keywords '("from"))
@@ -714,7 +519,7 @@ point"
 	(end (process-mark (get-buffer-process (current-buffer)))))
     (save-excursion
       (goto-char start)
-      (while (search-forward-regexp "https?://\\(\\w+\\.\\)*\\w+\\(/\\w+\\)*/?" end 't)
+      (while (search-forward-regexp "https?://\\(\\(\\w\\|_\\)+\\.\\)*\\(\\w\\|_\\)+\\(/\\(\\w\\|[_\\.-]\\)+\\)*/?" end 't)
 	(add-text-properties 
 	 (match-beginning 0) (match-end 0)
 	 (let ((map (make-sparse-keymap)))
@@ -732,207 +537,6 @@ point"
 	   (loc (compilation--message->loc msg))
 	   (end-loc (compilation--message->end-loc msg)))
       (buffer-substring loc end-loc))))
-
-(require 'sql)
-
-(defun sql-buffer-get-product (buf)
-  (and (sql-buffer-live-p buf)
-       (with-current-buffer buf
-	 sql-product)))
-
-(defun sql-buffer-get-connection (buf)
-  (and (sql-buffer-live-p buf)
-       (with-current-buffer buf
-	 sql-connection)))
-
-(defun sql-get-buffers (&optional product connection)
-  (filter (lambda (buffer)
-	    (sql-buffer-live-p buffer product connection))
-	  (buffer-list)))
-
-(defvar sql-read-connection-history nil)
-
-(defun sql-read-connection (prompt &optional initial default)
-  "Read a connection name."
-  (let ((connection-name (ido-completing-read
-			  "Connection name: "
-			  (mapcar (lambda (con) (car con)) sql-connection-alist)
-			  nil 't initial
-			  'sql-read-connection-history
-			  default)))
-    (add-to-list 'sql-read-connection-history connection-name)
-    connection-name))
-
-(defun sql-set-sqli-buffer ()
-  (interactive)
-  (let* ((buffers (sql-get-buffers))
-	 (buffer (ido-completing-read
-		  "Select buffer: "
-		  (mapcar (lambda (buffer)
-			    (buffer-name buffer)) buffers) nil 't)))
-    (setq sql-buffer buffer)
-    (run-hooks 'sql-set-sqli-hook)))
-
-(defconst sql-beginning-of-defun-regexp "create[[:space:]\n]+\\(or[[:space:]\n]+replace[[:space:]\n]+\\)?function")
-
-(defun sql-beginning-of-defun (&optional arg)
-  (interactive "P")
-  (search-forward ";" nil 't)
-  (search-backward-regexp sql-beginning-of-defun-regexp nil nil arg))
-
-(defun sql-forward-name (&optional arg)
-  (interactive "P")
-  (message "sql-forward-name")
-  (cond ((not arg)
-	 (sql-forward-name 1))
-	((= 0 arg)
-	 't)
-	((< arg 0)
-	 (sql-backward-name (- 0 arg)))
-	((> arg 0)
-	 (forward-symbol 1)
-	 (if (looking-at "[[:space:]\n]*\\.")
-	     (forward-symbol 1))
-	 (sql-forward-name (- arg 1)))))
-
-(defun sql-forward-token ()
-  (interactive)
-  (cond ((looking-at "[[:space:]\n]*'")
-	 (forward-sexp))
-	((looking-at "[[:space:]\n]*\\$\\([^\\$]*\\)\\$")
-	 (search-forward (concat "$" (match-string 1) "$") nil nil 2))
-	('t (forward-symbol 1))))
-
-(defun sql-end-of-defun (&optional arg)
-  (interactive "P")
-  (if (not (looking-at sql-beginning-of-defun-regexp))
-      (sql-beginning-of-defun))
-
-  (if (and (not (looking-at sql-beginning-of-defun-regexp)) ; If we started before any defuns
-	   (not (search-forward-regexp sql-beginning-of-defun-regexp nil nil)))
-      nil ; Can't find a defun start
-    (if (not (search-forward "("))
-	nil)
-    (backward-char)
-    (forward-sexp)  	   ; After the argument list
-    (while (not (looking-at "[[:space:]\n]*;"))
-      (sql-forward-token))
-    (search-forward ";")))
-
-(defun sql-send-defun ()
-  (interactive)
-  (let ((begin (save-excursion
-		 (beginning-of-defun)
-		 (point)))
-	(end (save-excursion
-	       (end-of-defun)
-	       (point))))
-    (sql-send-region begin end)))
-
-(defun sql-define-token ()
-  (interactive)
-  (let ((command (concat "\n\\d " (symbol-name (symbol-at-point)) ";")))
-    (message command)
-    (sql-send-string command)))
-
-(defun sql-defun-goto-line (line)
-  (interactive "P")
-  (if (not line)
-      (setq line (read-number "Line: ")))
-  (sql-beginning-of-defun)
-  (backward-char 1)
-  (forward-line line))
-
-(defun sql-switch-to-interactive ()
-  (interactive)
-  (if (sql-buffer-live-p sql-buffer)
-      (pop-to-buffer sql-buffer)))
-
-(defun string-font-lock ()
-  (interactive)
-  (add-to-list 'font-lock-keywords (cons "\\$[^\\$]*\\$" font-lock-string-face)))
-
-(defun my-sql-mode-hook ()
-  (string-font-lock)
-  (local-set-key (kbd "C-c f") 'postgres-help)
-  (local-set-key (kbd "C-c C-p") 'sql-connect)
-  (local-set-key (kbd "C-c C-c") 'sql-send-paragraph)
-  (local-set-key (kbd "C-c C-l") 'sql-send-buffer)
-  (local-set-key (kbd "C-c C-r") 'sql-send-region)
-  (local-set-key (kbd "C-c C-s") 'sql-send-string)
-  (local-set-key (kbd "C-c C-d") 'sql-send-defun)
-  (local-set-key (kbd "C-c d") 'sql-define-token)
-  (local-set-key (kbd "C-c C-b") 'sql-set-sqli-buffer)
-  (local-set-key (kbd "M-g d") 'sql-defun-goto-line)
-  (local-set-key (kbd "M-g i") 'sql-switch-to-interactive)
-  (make-local-variable 'beginning-of-defun-function)
-  (make-local-variable 'end-of-defun-function)
-  (setq beginning-of-defun-function 'sql-beginning-of-defun
-	end-of-defun-function 'sql-end-of-defun)
-  (sql-set-product 'postgres)
-  (setq ack-type "sql")
-  (make-local-variable 'w3m-search-default-engine)
-  (setq w3m-search-default-engine "postgres")
-  (flyspell-prog-mode))
-
-(add-hook 'sql-mode-hook 'my-sql-mode-hook)
-
-(defun psql-hook ()
-  (setq sql-prompt-regexp "^\\(\\S-+:\\)?\\S-+@\\S-+/\\S-+# "
-	sql-prompt-cont-regexp "^\\S-+[(\\$-]# "))
-
-(add-hook 'sql-interactive-mode-hook 'psql-hook)
-
-(global-set-key (kbd "C-x 8 A") "∀")
-(global-set-key (kbd "C-x 8 E") "∃")
-(global-set-key (kbd "C-x 8 a") "∧")
-(global-set-key (kbd "C-x 8 o") "∨")
-(global-set-key (kbd "C-x 8 U") "∪")
-(global-set-key (kbd "C-x 8 I") "∩")
-(global-set-key (kbd "C-x 8 d") "⋅")
-(global-set-key (kbd "C-x 8 D") "∘")
-(global-set-key (kbd "C-x 8 x") "×")
-(global-set-key (kbd "C-x 8 r") "→")
-(global-set-key (kbd "C-x 8 l") "←")
-(global-set-key (kbd "C-x 8 R") "⇒")
-(global-set-key (kbd "C-x 8 L") "⇐")
-(global-set-key (kbd "C-x 8 h") "⊦")
-(global-set-key (kbd "C-x 8 n") "⊨")
-(global-set-key (kbd "C-x 8 e") "∈")
-(global-set-key (kbd "C-x 8 i <") "≤")
-
-(defun bind-greek (key letter)
-  (global-set-key (kbd (concat "C-x 8 g " (downcase key))) 
-		  (vconcat [24 56 return]
-			   (string-to-vector (concat "greek small letter " letter)) [return]))
-  (global-set-key (kbd (concat "C-x 8 g " (upcase key))) 
-		  (vconcat [24 56 return]
-			   (string-to-vector (concat "greek capital letter " letter)) [return])))
-
-(bind-greek "a" "alpha")
-(bind-greek "b" "beta")
-(bind-greek "g" "gamma")
-(bind-greek "d" "delta")
-(bind-greek "e" "epsilon")
-(bind-greek "z" "zeta")
-(bind-greek "i" "eta")
-(bind-greek "t" "theta")
-(bind-greek "y" "iota")
-(bind-greek "k" "kappa")
-(bind-greek "l" "lambda")
-(bind-greek "m" "mu")
-(bind-greek "n" "nu")
-(bind-greek "x" "xi")
-(bind-greek "u" "omicron")
-(bind-greek "p" "pi")
-(bind-greek "r" "rho")
-(bind-greek "s" "sigma")
-(bind-greek "t" "tau")
-(bind-greek "i" "upsilon")
-(bind-greek "f" "phi")
-(bind-greek "c" "chi")
-(bind-greek "q" "psi")
-(bind-greek "o" "omega")
 
 (defun fix-prolog-font-locking ()
   (interactive)
@@ -1008,6 +612,57 @@ point"
 (require 'smtpmail)
 ;(server-start)
 
+(setq artist-direction-info
+      [ [  1  0 ?─ ]
+	[  1  1 ?╲ ]
+	[  0  1 ?│ ]
+	[ -1  1 ?╱ ]
+	[ -1  0 ?─ ]
+	[ -1 -1 ?╲ ]
+	[  0 -1 ?│ ]
+	[  1 -1 ?╱ ] ])
+
+(defun artist-intersection-char (new-c old-c)
+  "Calculates intersection character when drawing a NEW-C on top of an OLD-C.
+Return character according to this scheme:
+
+		OLD-C	NEW-C		return
+		 -	 |		   +
+		 |	 -		   +
+		 +	 |		   +
+		 +	 -		   +
+		 \\	 /		   X
+		 /	 \\		   X
+		 X	 /		   X
+		 X	 \\		   X
+		other combinations	   NEW-C"
+
+  (cond ((and (= old-c ?─ )  (= new-c ?│ ))  ?┼ )
+	((and (= old-c ?│ )  (= new-c ?─ ))  ?┼ )
+	((and (= old-c ?┼ )  (= new-c ?─ ))  ?┼ )
+	((and (= old-c ?┼ )  (= new-c ?│ ))  ?┼ )
+	((and (= old-c ?╲ )  (= new-c ?╱ ))  ?╳ )
+	((and (= old-c ?╱ )  (= new-c ?╲ ))  ?╳ )
+	((and (= old-c ?╳ )  (= new-c ?╱ ))  ?╳ )
+	((and (= old-c ?╳ )  (= new-c ?╲ ))  ?╳ )
+	(t new-c)))
+
+(defun artist-calculate-new-char (last-coord new-coord)
+  "Return a line-char to use when moving from LAST-COORD to NEW-COORD."
+  (let ((last-x (artist-coord-get-x last-coord))
+	(last-y (artist-coord-get-y last-coord))
+	(new-x (artist-coord-get-x new-coord))
+	(new-y (artist-coord-get-y new-coord)))
+    (cond ((> new-x last-x) (cond ((< new-y last-y) ?╱ )
+				  ((> new-y last-y) ?╲ )
+				  (t ?─ )))
+	  ((< new-x last-x) (cond ((< new-y last-y) ?╲ )
+				  ((> new-y last-y) ?╱ )
+				  (t ?─ )))
+	  ((eq new-y last-y) ?o)
+	  (t ?│ ))))
+
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -1020,6 +675,7 @@ point"
  '(completion-ignored-extensions (quote (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".dfsl" ".pfsl" ".d64fsl" ".p64fsl" ".lx64fsl" ".lx32fsl" ".dx64fsl" ".dx32fsl" ".fx64fsl" ".fx32fsl" ".sx64fsl" ".sx32fsl" ".wx64fsl" ".wx32fsl" ".fasl" ".ufsl" ".fsl" ".dxl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" ".orig")))
  '(confluence-default-space-alist (quote (("https://hq.hanzoarchives.com/confluence/rpc/xmlrpc" . "dashboard"))))
  '(confluence-url "https://hq.hanzoarchives.com/confluence/rpc/xmlrpc")
+ '(cperl-pod-face (quote font-lock-doc-face))
  '(dvc-confirm-add nil)
  '(dvc-tips-enabled nil)
  '(fill-column 78)
@@ -1036,6 +692,7 @@ point"
  '(ido-auto-merge-delay-time 99999)
  '(ido-enable-flex-matching t)
  '(ido-everywhere t)
+ '(ido-max-directory-size 100000)
  '(ido-mode (quote both) nil (ido))
  '(imenu-auto-rescan t)
  '(ispell-dictionary "british")
@@ -1049,7 +706,7 @@ point"
  '(org-agenda-files (quote ("~/org/notes.org" "~/org/personal.org" "~/org/hanzo.org" "~/org/diary.org" "~/org/shopping.org")))
  '(org-agenda-format-date (quote my-org-agenda-format-date-aligned))
  '(org-agenda-menu-show-matcher t)
- '(org-agenda-menu-two-column nil)
+ '(org-agenda-menu-two-columns nil)
  '(org-agenda-tags-todo-honor-ignore-options t)
  '(org-agenda-todo-ignore-deadlines (quote near))
  '(org-agenda-todo-ignore-scheduled (quote all))
@@ -1085,36 +742,58 @@ point"
  '(org-src-fontify-natively t)
  '(org-tag-persistent-alist (quote ((:startgroup) ("@code" . 99) ("@home" . 104) ("@town" . 116) (:endgroup) ("bill" . 98) ("shopping" . 115))))
  '(org-todo-keywords (quote ((sequence "TODO" "DONE"))))
+ '(picture-rectangle-cbl 9492)
+ '(picture-rectangle-cbr 9496)
+ '(picture-rectangle-ctl 9484)
+ '(picture-rectangle-ctr 9488)
+ '(picture-rectangle-h 9472)
+ '(picture-rectangle-v 9474)
  '(read-mail-command (quote gnus))
  '(remember-data-file "~/remember.org")
- '(safe-local-variable-values (quote ((cpp-make-target . "run-problem7") (cpp-make-target . "run-problem6") (cpp-make-target . "run-problem5") (cpp-make-target . "run-problem4") (cpp-make-target . "run-problem3") (cpp-make-target . "run-problem2") (cpp-make-target . "run-problem1") (cpp-make-target . "problem1") (cpp-make-target . problem1))))
+ '(safe-local-variable-values (quote ((compilation-directory . \.\./) (compilation-directory . \.\.) (cpp-make-target . "run-problem7") (cpp-make-target . "run-problem6") (cpp-make-target . "run-problem5") (cpp-make-target . "run-problem4") (cpp-make-target . "run-problem3") (cpp-make-target . "run-problem2") (cpp-make-target . "run-problem1") (cpp-make-target . "problem1") (cpp-make-target . problem1))))
  '(send-mail-function (quote smtpmail-send-it))
  '(sentence-end-double-space nil)
- '(shell-dynamic-complete-functions (quote (comint-c-a-p-replace-by-expanded-history shell-environment-variable-completion shell-command-completion shell-c-a-p-replace-by-expanded-directory pcomplete-completions-at-point shell-filename-completion comint-filename-completion shell-apt-complete)))
+ '(shell-dynamic-complete-functions (quote (comint-c-a-p-replace-by-expanded-history shell-environment-variable-completion shell-command-completion shell-c-a-p-replace-by-expanded-directory pcomplete-completions-at-point shell-filename-completion comint-filename-completion shell-apt-complete)) t)
  '(smtpmail-debug-info t)
  '(smtpmail-local-domain nil)
  '(smtpmail-smtp-server "mail.secretvolcanobase.org")
  '(smtpmail-smtp-service "smtp")
  '(smtpmail-smtp-user "zombywuf")
  '(smtpmail-stream-type (quote starttls))
- '(sql-connection-alist (quote (("miyamoto" (sql-product (quote postgres)) (sql-user "stephenjones") (sql-server "") (sql-database "miyamoto")) ("stephenjones" (sql-product (quote postgres)) (sql-user "stephenjones") (sql-database "stephenjones") (sql-server "")) ("kagami" (sql-product (quote postgres)) (sql-user "stephenjones") (sql-database "kagami") (sql-server "")))))
+ '(sql-connection-alist (quote (("miyamoto" (sql-product (quote postgres)) (sql-user "steve") (sql-server "") (sql-database "miyamoto")) ("steve" (sql-product (quote postgres)) (sql-user "steve") (sql-server "") (sql-database "stephenjones")) ("kagami" (sql-product (quote postgres)) (sql-user "steve") (sql-server "") (sql-database "kagami")) ("reader" (sql-product (quote postgres)) (sql-user "steve") (sql-server "") (sql-database "reader")))))
  '(sql-pop-to-buffer-after-send-region nil)
  '(sql-send-terminator t)
  '(user-mail-address "steve@secretvolcanobase.org")
  '(vc-delete-logbuf-window nil)
  '(w3m-key-binding (quote info))
  '(w3m-search-engine-alist (quote (("yahoo" "http://search.yahoo.com/bin/search?p=%s" nil) ("yahoo-ja" "http://search.yahoo.co.jp/bin/search?p=%s" euc-japan) ("alc" "http://eow.alc.co.jp/%s/UTF-8/" utf-8) ("blog" "http://blogsearch.google.com/blogsearch?q=%s&oe=utf-8&ie=utf-8" utf-8) ("blog-en" "http://blogsearch.google.com/blogsearch?q=%s&hl=en&oe=utf-8&ie=utf-8" utf-8) ("google" "http://www.google.co.uk/search?q=%s&ie=utf-8&oe=utf-8" utf-8) ("google-en" "http://www.google.com/search?q=%s&hl=en&ie=utf-8&oe=utf-8" utf-8) ("google news" "http://news.google.co.jp/news?hl=ja&ie=utf-8&q=%s&oe=utf-8" utf-8) ("google news-en" "http://news.google.com/news?hl=en&q=%s" nil) ("google groups" "http://groups.google.com/groups?q=%s" nil) ("All the Web" "http://www.alltheweb.com/search?web&_sb_lang=en&q=%s" nil) ("All the Web-ja" "http://www.alltheweb.com/search?web&_sb_lang=ja&cs=euc-jp&q=%s" euc-japan) ("technorati" "http://www.technorati.com/search/%s" utf-8) ("technorati-ja" "http://www.technorati.jp/search/search.html?query=%s&language=ja" utf-8) ("technorati-tag" "http://www.technorati.com/tag/%s" utf-8) ("goo-ja" "http://search.goo.ne.jp/web.jsp?MT=%s" euc-japan) ("excite-ja" "http://www.excite.co.jp/search.gw?target=combined&look=excite_jp&lang=jp&tsug=-1&csug=-1&search=%s" shift_jis) ("altavista" "http://altavista.com/sites/search/web?q=\"%s\"&kl=ja&search=Search" nil) ("rpmfind" "http://rpmfind.net/linux/rpm2html/search.php?query=%s" nil) ("debian-pkg" "http://packages.debian.org/cgi-bin/search_contents.pl?directories=yes&arch=i386&version=unstable&case=insensitive&word=%s" nil) ("debian-bts" "http://bugs.debian.org/cgi-bin/pkgreport.cgi?archive=yes&pkg=%s" nil) ("freebsd-users-jp" "http://home.jp.FreeBSD.org/cgi-bin/namazu.cgi?key=\"%s\"&whence=0&max=50&format=long&sort=score&dbname=FreeBSD-users-jp" euc-japan) ("iij-archie" "http://www.iij.ad.jp/cgi-bin/archieplexform?query=%s&type=Case+Insensitive+Substring+Match&order=host&server=archie1.iij.ad.jp&hits=95&nice=Nice" nil) ("waei" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=je" euc-japan) ("eiwa" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=ej" nil) ("kokugo" "http://dictionary.goo.ne.jp/search.php?MT=%s&kind=jn" euc-japan) ("eiei" "http://www.dictionary.com/cgi-bin/dict.pl?term=%s&r=67" nil) ("amazon" "http://www.amazon.com/exec/obidos/search-handle-form/250-7496892-7797857" iso-8859-1 "url=index=blended&field-keywords=%s") ("amazon-ja" "http://www.amazon.co.jp/gp/search?__mk_ja_JP=%%83J%%83%%5E%%83J%%83i&url=search-alias%%3Daps&field-keywords=%s" shift_jis) ("emacswiki" "http://www.google.co.uk/cse?cx=004774160799092323420%%3A6-ff2s0o6yi&q=%s" nil) ("en.wikipedia" "http://en.wikipedia.org/wiki/Special:Search?search=%s" nil) ("de.wikipedia" "http://de.wikipedia.org/wiki/Spezial:Search?search=%s" utf-8) ("ja.wikipedia" "http://ja.wikipedia.org/wiki/Special:Search?search=%s" utf-8) ("msdn" "http://search.msdn.microsoft.com/search/default.aspx?query=%s" nil) ("freshmeat" "http://freshmeat.net/search/?q=%s&section=projects" nil) ("postgres" "http://www.postgresql.org/search/?u=%%2Fdocs%%2F9.1%%2F&q=%s" utf-8) ("python" "http://docs.python.org/search.html?q=%s&check_keywords=yes&area=default" utf-8))))
- '(which-function-mode t)
- '(whitespace-style (quote (face trailing lines-tail space-before-tab empty space-after-tab tab-mark))))
+ '(which-function-mode t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 100 :width normal :foundry "unknown" :family "Bitstream Vera Sans Mono"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 120 :width normal :foundry "unknown" :family "Inconsolata"))))
+ '(agda2-highlight-bound-variable-face ((t (:inherit font-lock-variable-name-face))))
+ '(agda2-highlight-datatype-face ((t (:inherit font-lock-type-face))))
+ '(agda2-highlight-error-face ((t (:underline "red"))))
+ '(agda2-highlight-field-face ((t (:inherit font-lock-constant-face))))
+ '(agda2-highlight-function-face ((t (:inherit font-lock-function-name-face))))
+ '(agda2-highlight-keyword-face ((t (:inherit font-lock-keyword-face))))
+ '(agda2-highlight-module-face ((t (:inherit font-lock-type-face :weight bold))))
+ '(agda2-highlight-number-face ((t (:inherit font-lock-constant-face))))
+ '(agda2-highlight-operator-face ((t nil)))
+ '(agda2-highlight-primitive-face ((t (:inherit font-lock-builtin-face))))
+ '(agda2-highlight-primitive-type-face ((t (:inherit font-lock-type-face))))
+ '(agda2-highlight-record-face ((t (:foreground "lime green"))))
+ '(agda2-highlight-string-face ((t (:inherit font-lock-string-face))))
+ '(agda2-highlight-symbol-face ((t (:inherit default))))
  '(bold ((t (:weight bold))))
  '(bold-italic ((t (:slant italic :weight bold))))
- '(comint-highlight-prompt ((t nil)))
+ '(comint-highlight-prompt ((t (:weight bold))))
+ '(cperl-array-face ((t (:inherit font-lock-variable-name-face :weight bold))))
+ '(cperl-hash-face ((t (:inherit font-lock-variable-name-face :slant italic :weight bold))))
+ '(cperl-nonoverridable-face ((t (:inherit font-lock-builtin-face))))
  '(error ((t (:foreground "orangered" :weight bold))))
  '(flymake-errline ((((class color) (min-colors 88) (background dark)) (:underline "red")) (((class color) (background light)) (:underline "red"))))
  '(flymake-warnline ((t (:underline "steelblue1" :slant italic))))
@@ -1129,9 +808,10 @@ point"
  '(font-lock-keyword-face ((t (:foreground "#ffc896"))))
  '(font-lock-string-face ((t (:foreground "#7ac6cd"))))
  '(font-lock-type-face ((t (:foreground "#acee8c"))))
- '(font-lock-variable-name-face ((t (:foreground "#7779a2"))))
+ '(font-lock-variable-name-face ((t (:foreground "#a7a9d2"))))
  '(gnus-header-content ((t (:foreground "indianred4"))))
  '(highlight ((t (:background "grey20"))))
+ '(highlight-beyond-fill-column-face ((t (:underline t :weight bold))))
  '(italic ((t (:slant italic))))
  '(mode-line ((t (:background "grey25" :foreground "grey90"))))
  '(mode-line-buffer-id ((t (:background "grey40" :weight bold))))
@@ -1166,7 +846,7 @@ point"
  '(outline-5 ((t (:foreground "#287d85" :weight bold))))
  '(outline-6 ((t (:foreground "#287d85" :weight bold))))
  '(outline-7 ((t (:foreground "#287d85" :weight bold))))
- '(which-func ((t (:inherit font-lock-function-name-face))))
- '(whitespace-line ((t (:background "red")))))
+ '(which-func ((t (:inherit font-lock-function-name-face)))))
 
 (put 'narrow-to-region 'disabled nil)
+(put 'upcase-region 'disabled nil)
