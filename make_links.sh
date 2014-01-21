@@ -20,3 +20,16 @@ elif [ -d "$HOME/bin" ]; then
 fi
 
 ln -s "$PWD/bin" "$HOME/bin"
+
+if ! [ -d "$HOME/.emacs.d" ]; then
+    mkdir "$HOME/.emacs.d"
+fi
+
+if [ -h "$HOME/.emacs.d/elisp" ]; then
+    rm "$HOME/.emacs.d/elisp"
+elif [ -d "$HOME/.emacs.d/elisp" ]; then
+    mv "$HOME/.emacs.d/elisp" "$HOME/.emacs.d/elisp.bak"
+fi
+
+ln -s "$PWD/elisp" "$HOME/.emacs.d/elisp"
+
