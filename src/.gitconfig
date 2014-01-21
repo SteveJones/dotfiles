@@ -12,3 +12,5 @@
 	ui = auto
 [push]
 	default = upstream
+[gpg]
+	program = gpg-notty.sh
